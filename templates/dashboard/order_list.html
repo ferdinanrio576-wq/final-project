@@ -1,0 +1,125 @@
+{% extends 'base.html' %}
+{% block title %}Kelola Pesanan | ElectroShop{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+  
+  <!-- Admin Navigation Subbar -->
+  <div class="card border-0 bg-light p-3 mb-4" style="border-radius: 12px;">
+    <div class="d-flex flex-wrap gap-2 align-items-center">
+      <h5 class="fw-bold mb-0 text-primary me-3"><i class="bi bi-speedometer2 me-2"></i>Admin Area</h5>
+      <a href="{% url 'dashboard_index' %}" class="btn btn-outline-secondary btn-sm fw-semibold">Ringkasan</a>
+      <a href="{% url 'admin_product_list' %}" class="btn btn-outline-secondary btn-sm fw-semibold">Produk</a>
+      <a href="{% url 'admin_category_list' %}" class="btn btn-outline-secondary btn-sm fw-semibold">Kategori</a>
+      <a href="{% url 'admin_coupon_list' %}" class="btn btn-outline-secondary btn-sm fw-semibold">Kupon Voucher</a>
+      <a href="{% url 'admin_order_list' %}" class="btn btn-primary btn-sm fw-semibold">Pesanan</a>
+      <a href="{% url 'admin_user_list' %}" class="btn btn-outline-secondary btn-sm fw-semibold">User Pelanggan</a>
+      <a href="{% url 'admin_reports' %}" class="btn btn-outline-secondary btn-sm fw-semibold">Laporan Ekspor</a>
+    </div>
+  </div>
+
+  <div class="card shadow border-0 p-4" style="border-radius: 12px;">
+    <h4 class="fw-bold mb-4 text-dark">Kelola Transaksi Pesanan</h4>
+
+    <!-- Filter Status Pills -->
+    <div class="mb-4 d-flex flex-wrap gap-2">
+      <a href="?" class="btn btn-sm {% if not current_status %}btn-primary{% else %}btn-outline-primary{% endif %} fw-semibold">
+        Semua
+      </a>
+      <a href="?status=PENDING" class="btn btn-sm {% if current_status == 'PENDING' %}btn-warning text-white{% else %}btn-outline-warning{% endif %} fw-semibold">
+        Menunggu Pembayaran
+      </a>
+      <a href="?status=AWAITING_VERIFICATION" class="btn btn-sm {% if current_status == 'AWAITING_VERIFICATION' %}btn-info text-white{% else %}btn-outline-info{% endif %} fw-semibold">
+        Menunggu Verifikasi
+      </a>
+      <a href="?status=PAID" class="btn btn-sm {% if current_status == 'PAID' %}btn-success{% else %}btn-outline-success{% endif %} fw-semibold">
+        Lunas
+      </a>
+      <a href="?status=PROCESSING" class="btn btn-sm {% if current_status == 'PROCESSING' %}btn-secondary{% else %}btn-outline-secondary{% endif %} fw-semibold">
+        Diproses
+      </a>
+      <a href="?status=SHIPPED" class="btn btn-sm {% if current_status == 'SHIPPED' %}btn-dark{% else %}btn-outline-dark{% endif %} fw-semibold">
+        Dikirim
+      </a>
+      <a href="?status=COMPLETED" class="btn btn-sm {% if current_status == 'COMPLETED' %}btn-primary-custom{% else %}btn-outline-primary-custom{% endif %} fw-semibold">
+        Selesai
+      </a>
+      <a href="?status=CANCELLED" class="btn btn-sm {% if current_status == 'CANCELLED' %}btn-danger{% else %}btn-outline-danger{% endif %} fw-semibold">
+        Dibatalkan
+      </a>
+    </div>
+
+    {% if orders %}
+      <div class="table-responsive">
+        <table class="table align-middle">
+          <thead>
+            <tr class="text-muted">
+              <th>Nomor Order</th>
+              <th>Pelanggan</th>
+              <th>Total Belanja</th>
+              <th>Status Transaksi</th>
+              <th>Kurir</th>
+              <th>Tanggal Transaksi</th>
+              <th>Aksi</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for o in orders %}
+              <tr>
+                <td class="fw-bold text-dark">{{ o.order_number }}</td>
+                <td>{{ o.user.email }}</td>
+                <td class="fw-bold text-primary">Rp {{ o.final_amount|floatformat:0 }}</td>
+                <td>
+                  <span class="badge 
+                    {% if o.status == 'PENDING' %}bg-warning text-dark
+                    {% elif o.status == 'AWAITING_VERIFICATION' %}bg-info text-dark
+                    {% elif o.status == 'PAID' %}bg-success
+                    {% elif o.status == 'PROCESSING' %}bg-secondary
+                    {% elif o.status == 'SHIPPED' %}bg-dark
+                    {% elif o.status == 'COMPLETED' %}bg-primary-custom
+                    {% else %}bg-danger{% endif %} text-white">
+                    {{ o.get_status_display }}
+                  </span>
+                </td>
+                <td>
+                  {% if o.shipment %}
+                    <span class="badge bg-light text-secondary border">{{ o.shipment.courier }}</span>
+                  {% else %}
+                    -
+                  {% endif %}
+                </td>
+                <td class="text-muted small">{{ o.created_at|date:"d M Y H:i" }}</td>
+                <td>
+                  <a href="{% url 'admin_order_detail' o.id %}" class="btn btn-outline-primary btn-sm fw-semibold">Kelola</a>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination -->
+      {% if is_paginated %}
+        <nav class="mt-4" aria-label="Page navigation">
+          <ul class="pagination justify-content-center">
+            {% if page_obj.has_previous %}
+              <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}">&laquo;</a></li>
+            {% endif %}
+            {% for num in page_obj.paginator.page_range %}
+              <li class="page-item {% if page_obj.number == num %}active{% endif %}">
+                <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+              </li>
+            {% endfor %}
+            {% if page_obj.has_next %}
+              <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}">&raquo;</a></li>
+            {% endif %}
+          </ul>
+        </nav>
+      {% endif %}
+
+    {% else %}
+      <p class="text-muted small">Belum ada transaksi di sistem.</p>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

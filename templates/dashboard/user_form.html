@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+{% block title %}Kelola User {{ object.username }} | Admin{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+  
+  <!-- Admin Navigation Subbar -->
+  <div class="card border-0 bg-light p-3 mb-4" style="border-radius: 12px;">
+    <div class="d-flex flex-wrap gap-2 align-items-center">
+      <h5 class="fw-bold mb-0 text-primary me-3"><i class="bi bi-speedometer2 me-2"></i>Admin Area</h5>
+      <a href="{% url 'dashboard_index' %}" class="btn btn-outline-secondary btn-sm fw-semibold">Ringkasan</a>
+      <a href="{% url 'admin_product_list' %}" class="btn btn-outline-secondary btn-sm fw-semibold">Produk</a>
+      <a href="{% url 'admin_category_list' %}" class="btn btn-outline-secondary btn-sm fw-semibold">Kategori</a>
+      <a href="{% url 'admin_coupon_list' %}" class="btn btn-outline-secondary btn-sm fw-semibold">Kupon Voucher</a>
+      <a href="{% url 'admin_order_list' %}" class="btn btn-outline-secondary btn-sm fw-semibold">Pesanan</a>
+      <a href="{% url 'admin_user_list' %}" class="btn btn-primary btn-sm fw-semibold">User Pelanggan</a>
+      <a href="{% url 'admin_reports' %}" class="btn btn-outline-secondary btn-sm fw-semibold">Laporan Ekspor</a>
+    </div>
+  </div>
+
+  <div class="card shadow border-0 p-4" style="border-radius: 12px;">
+    <h4 class="fw-bold mb-4 text-dark"><i class="bi bi-person-gear text-primary me-2"></i>Ubah Status & Peran Pengguna</h4>
+    
+    <form method="POST">
+      {% csrf_token %}
+      
+      <div class="row">
+        <div class="col-md-6 mb-3">
+          <label class="form-label fw-semibold">Username</label>
+          <input type="text" class="form-control" value="{{ object.username }}" disabled>
+        </div>
+        <div class="col-md-6 mb-3">
+          <label class="form-label fw-semibold">Email</label>
+          <input type="email" class="form-control" value="{{ object.email }}" disabled>
+        </div>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label fw-semibold">Hak Akses / Peran (Role)</label>
+        {{ form.role }}
+        {% if form.role.errors %}
+          <div class="text-danger small mt-1">{{ form.role.errors.0 }}</div>
+        {% endif %}
+      </div>
+
+      <div class="mb-4">
+        <div class="form-check">
+          {{ form.is_banned }}
+          <label class="form-check-label fw-semibold text-danger" for="id_is_banned">Tangguhkan Akun Ini (Banned User)</label>
+        </div>
+        <div class="form-text">Mencentang pilihan ini akan menghalangi pengguna untuk masuk atau melakukan transaksi di situs.</div>
+        {% if form.is_banned.errors %}
+          <div class="text-danger small mt-1">{{ form.is_banned.errors.0 }}</div>
+        {% endif %}
+      </div>
+
+      <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-primary-custom px-4 fw-bold">Simpan Perubahan</button>
+        <a href="{% url 'admin_user_list' %}" class="btn btn-outline-secondary px-4 fw-semibold">Batal</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

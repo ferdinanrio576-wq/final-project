@@ -1,0 +1,427 @@
+{% extends 'base.html' %}
+{% block title %}Checkout Pesanan | ElectroShop{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+  <h3 class="fw-bold mb-4"><i class="bi bi-credit-card text-primary me-2"></i>Checkout Pesanan</h3>
+  
+  <form action="{% url 'checkout' %}" method="POST" id="checkout-form">
+    {% csrf_token %}
+    
+    <div class="row g-4">
+      <!-- Left side: Shipping Address & Courier Selection -->
+      <div class="col-lg-8">
+        <!-- 1. Shipping Address Selection -->
+        <div class="card shadow border-0 p-4 mb-4" style="border-radius: 12px;">
+          <div class="d-flex align-items-center mb-3">
+            <h5 class="fw-bold mb-0 text-dark"><i class="bi bi-geo-alt me-2 text-primary"></i>Alamat Pengiriman</h5>
+            <button type="button" class="btn btn-sm btn-outline-primary ms-auto" data-bs-toggle="modal" data-bs-target="#addAddressModal">
+              <i class="bi bi-plus-lg me-1"></i>Tambah Alamat Baru
+            </button>
+          </div>
+          
+          {% if addresses %}
+            <div class="mb-3" id="address-select-container">
+              <label for="address_id" class="form-label small fw-semibold">Pilih Alamat Tujuan</label>
+              <select name="address_id" id="address_id" class="form-select">
+                {% for addr in addresses %}
+                  <option value="{{ addr.id }}" {% if addr == active_address %}selected{% endif %}>
+                    [{{ addr.label }}] {{ addr.recipient_name }} - {{ addr.street_address|slice:":40" }}... ({{ addr.city }})
+                  </option>
+                {% endfor %}
+              </select>
+            </div>
+            
+            <!-- Address Snapshot Details -->
+            <div class="border rounded p-3 bg-light" id="selected-address-snapshot">
+              {% if active_address %}
+                <h6 class="fw-bold mb-1 text-dark" id="snap-name">{{ active_address.recipient_name }}</h6>
+                <p class="mb-1 text-muted small" id="snap-phone">{{ active_address.phone_number }}</p>
+                <p class="mb-0 text-muted small" id="snap-details">{{ active_address.street_address }}, {{ active_address.city }}, {{ active_address.province }}, {{ active_address.postal_code }}</p>
+              {% endif %}
+            </div>
+          {% else %}
+            <div class="alert alert-warning mb-0 d-flex align-items-center justify-content-between flex-wrap gap-2" id="no-address-alert">
+              <span><i class="bi bi-exclamation-triangle me-2"></i>Anda belum memiliki alamat pengiriman.</span>
+              <button type="button" class="btn btn-sm btn-warning fw-bold text-dark" data-bs-toggle="modal" data-bs-target="#addAddressModal">
+                <i class="bi bi-plus-lg me-1"></i>Tambah Alamat
+              </button>
+            </div>
+            
+            <!-- Hidden containers to be shown when address is dynamically added -->
+            <div class="mb-3 d-none" id="address-select-container">
+              <label for="address_id" class="form-label small fw-semibold">Pilih Alamat Tujuan</label>
+              <select name="address_id" id="address_id" class="form-select"></select>
+            </div>
+            <div class="border rounded p-3 bg-light d-none" id="selected-address-snapshot">
+              <h6 class="fw-bold mb-1 text-dark" id="snap-name"></h6>
+              <p class="mb-1 text-muted small" id="snap-phone"></p>
+              <p class="mb-0 text-muted small" id="snap-details"></p>
+            </div>
+          {% endif %}
+        </div>
+
+        <!-- 2. Courier Selection -->
+        <div class="card shadow border-0 p-4 mb-4" style="border-radius: 12px;">
+          <h5 class="fw-bold mb-3 d-flex align-items-center text-dark"><i class="bi bi-truck me-2 text-primary"></i>Metode Pengiriman</h5>
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label for="courier" class="form-label small fw-semibold">Pilih Kurir</label>
+              <select name="courier" id="courier" class="form-select" required>
+                {% for code, label in couriers %}
+                  <option value="{{ code }}">{{ label }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold">Estimasi Ongkos Kirim</label>
+              <input type="text" class="form-control bg-light text-dark fw-bold" id="shipping-cost-display" value="Rp 15.000" readonly>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3. Cart Items Review -->
+        <div class="card shadow border-0 p-4" style="border-radius: 12px;">
+          <h5 class="fw-bold mb-3 text-dark"><i class="bi bi-bag me-2 text-primary"></i>Review Barang Belanja</h5>
+          <div class="d-flex flex-column gap-3">
+            {% for item in items %}
+              <div class="d-flex justify-content-between align-items-center {% if not forloop.last %}border-bottom pb-3{% endif %}">
+                <div class="d-flex align-items-center">
+                  <img src="{{ item.product.primary_image_url }}" alt="{{ item.product.name }}" class="rounded me-3" style="width: 50px; height: 50px; object-fit: cover;">
+                  <div>
+                    <h6 class="fw-bold mb-0 text-dark" style="font-size: 0.95rem;">{{ item.product.name }}</h6>
+                    <small class="text-muted">{{ item.quantity }} x Rp {{ item.product.final_price|floatformat:0 }}</small>
+                  </div>
+                </div>
+                <span class="fw-semibold text-dark">Rp {{ item.subtotal|floatformat:0 }}</span>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+
+      <!-- Right side: Promo Voucher & Order Totals Summary -->
+      <div class="col-lg-4">
+        <!-- 1. Promo Voucher Apply -->
+        <div class="card shadow border-0 p-4 mb-4" style="border-radius: 12px;">
+          <h5 class="fw-bold mb-3 text-dark"><i class="bi bi-ticket-perforated me-2 text-primary"></i>Gunakan Voucher</h5>
+          <div class="input-group">
+            <input type="text" class="form-control" placeholder="Kode kupon" name="coupon_code" id="coupon_code">
+            <button class="btn btn-outline-primary fw-bold" type="button" id="btn-apply-coupon">Gunakan</button>
+          </div>
+          <div id="coupon-message" class="small mt-2 d-none"></div>
+        </div>
+
+        <!-- 2. Order Summary Calculation -->
+        <div class="card shadow border-0 p-4" style="border-radius: 12px; position: sticky; top: 90px;">
+          <h5 class="fw-bold mb-3 text-dark">Ringkasan Pembayaran</h5>
+          
+          <div class="d-flex justify-content-between mb-2">
+            <span class="text-muted">Subtotal Barang</span>
+            <span class="fw-semibold text-dark">Rp {{ cart.subtotal|floatformat:0 }}</span>
+          </div>
+          
+          <div class="d-flex justify-content-between mb-2">
+            <span class="text-muted">Ongkos Kirim</span>
+            <span class="fw-semibold text-dark" id="summary-shipping">Rp 15.000</span>
+          </div>
+
+          <div class="d-flex justify-content-between mb-2">
+            <span class="text-muted">Pajak (PPN 11%)</span>
+            <span class="fw-semibold text-dark" id="summary-tax">Rp 0</span>
+          </div>
+
+          <div class="d-flex justify-content-between text-danger mb-4 d-none" id="summary-discount-row">
+            <span>Potongan Diskon</span>
+            <span class="fw-semibold" id="summary-discount">-Rp 0</span>
+          </div>
+
+          <hr class="text-secondary">
+          
+          <div class="d-flex justify-content-between mb-4">
+            <span class="fw-bold text-dark fs-5">Total Bayar</span>
+            <span class="fw-bold text-primary fs-4" id="summary-total">Rp 0</span>
+          </div>
+
+          {% if addresses %}
+            <button type="submit" class="btn btn-primary-custom w-100 py-2.5 fw-bold">Buat Pesanan & Bayar</button>
+          {% else %}
+            <button type="button" class="btn btn-secondary w-100 py-2.5 fw-bold" disabled>Alamat Belum Ada</button>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const subtotal = parseFloat("{{ cart.subtotal }}");
+  const shippingCost = 15000;
+  const tax = Math.round(subtotal * 0.11);
+  let discount = 0;
+
+  function recalculateTotals() {
+    const finalTotal = (subtotal + shippingCost + tax) - discount;
+    document.getElementById('summary-tax').textContent = 'Rp ' + tax.toLocaleString('id-ID');
+    document.getElementById('summary-total').textContent = 'Rp ' + finalTotal.toLocaleString('id-ID');
+  }
+
+  recalculateTotals();
+
+  // Handle coupon application AJAX
+  const applyBtn = document.getElementById('btn-apply-coupon');
+  applyBtn.addEventListener('click', async () => {
+    const code = document.getElementById('coupon_code').value.trim();
+    const messageBlock = document.getElementById('coupon-message');
+    
+    if(!code) {
+      messageBlock.className = 'small mt-2 text-danger';
+      messageBlock.textContent = 'Silakan isi kode voucher.';
+      messageBlock.classList.remove('d-none');
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/coupons/validate/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: JSON.stringify({
+          code: code,
+          subtotal: subtotal
+        })
+      });
+
+      const data = await response.json();
+      
+      if(response.ok && data.valid) {
+        discount = Math.round(data.discount_amount);
+        
+        messageBlock.className = 'small mt-2 text-success';
+        messageBlock.textContent = data.message;
+        messageBlock.classList.remove('d-none');
+        
+        // Show discount in totals card
+        document.getElementById('summary-discount').textContent = '-Rp ' + discount.toLocaleString('id-ID');
+        document.getElementById('summary-discount-row').classList.remove('d-none');
+        
+        recalculateTotals();
+      } else {
+        discount = 0;
+        messageBlock.className = 'small mt-2 text-danger';
+        messageBlock.textContent = data.message || 'Kupon tidak valid.';
+        messageBlock.classList.remove('d-none');
+        
+        document.getElementById('summary-discount-row').classList.add('d-none');
+        recalculateTotals();
+      }
+    } catch(err) {
+      showToast('Koneksi internet bermasalah.', 'danger');
+    }
+  });
+
+  // Dynamic address changes updates in snapshot cards
+  const addressesData = {
+    {% for addr in addresses %}
+      "{{ addr.id }}": {
+        name: "{{ addr.recipient_name }}",
+        phone: "{{ addr.phone_number }}",
+        details: "{{ addr.street_address|escapejs }}, {{ addr.city|escapejs }}, {{ addr.province|escapejs }}, {{ addr.postal_code|escapejs }}"
+      },
+    {% endfor %}
+  };
+
+  function bindAddressChangeEvent(selectElement) {
+    if (selectElement) {
+      selectElement.addEventListener('change', (e) => {
+        const id = e.target.value;
+        const addr = addressesData[id];
+        if(addr) {
+          document.getElementById('snap-name').textContent = addr.name;
+          document.getElementById('snap-phone').textContent = addr.phone;
+          document.getElementById('snap-details').textContent = addr.details;
+        }
+      });
+    }
+  }
+
+  const initialAddressSelect = document.getElementById('address_id');
+  bindAddressChangeEvent(initialAddressSelect);
+
+  // Handle AJAX address submission
+  const ajaxAddressForm = document.getElementById('ajax-address-form');
+  if(ajaxAddressForm) {
+    ajaxAddressForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const saveBtn = document.getElementById('btn-save-address');
+      saveBtn.disabled = true;
+      saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> Menyimpan...';
+
+      const formData = new FormData(ajaxAddressForm);
+      try {
+        const response = await fetch(ajaxAddressForm.action, {
+          method: 'POST',
+          headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRFToken': formData.get('csrfmiddlewaretoken')
+          },
+          body: formData
+        });
+
+        const data = await response.json();
+        if(response.ok && data.success) {
+          // Success! Close Modal
+          const modalEl = document.getElementById('addAddressModal');
+          const modalInstance = bootstrap.Modal.getInstance(modalEl);
+          if (modalInstance) {
+            modalInstance.hide();
+          }
+          ajaxAddressForm.reset();
+
+          // Add new address to dropdown and select it
+          const selectContainer = document.getElementById('address-select-container');
+          const noAddressAlert = document.getElementById('no-address-alert');
+          
+          if(noAddressAlert) {
+            noAddressAlert.classList.add('d-none');
+          }
+          
+          let addressSelect = document.getElementById('address_id');
+          if(!addressSelect) {
+            // If the element didn't exist originally (empty state)
+            if(selectContainer) {
+              selectContainer.classList.remove('d-none');
+              addressSelect = selectContainer.querySelector('select');
+              bindAddressChangeEvent(addressSelect);
+            }
+          }
+          
+          if(addressSelect) {
+            const opt = document.createElement('option');
+            opt.value = data.address.id;
+            opt.textContent = `[${data.address.label}] ${data.address.recipient_name} - ${data.address.street_address.substring(0, 40)}... (${data.address.city})`;
+            opt.selected = true;
+            addressSelect.appendChild(opt);
+            
+            // Register data
+            addressesData[data.address.id] = {
+              name: data.address.recipient_name,
+              phone: data.address.phone_number,
+              details: `${data.address.street_address}, ${data.address.city}, ${data.address.province}, ${data.address.postal_code}`
+            };
+            
+            // Trigger change event to update snapshot
+            const event = new Event('change');
+            addressSelect.dispatchEvent(event);
+          }
+
+          // Show snapshot container if hidden
+          const snapContainer = document.getElementById('selected-address-snapshot');
+          if(snapContainer) {
+            snapContainer.classList.remove('d-none');
+            document.getElementById('snap-name').textContent = data.address.recipient_name;
+            document.getElementById('snap-phone').textContent = data.address.phone_number;
+            document.getElementById('snap-details').textContent = `${data.address.street_address}, ${data.address.city}, ${data.address.province}, ${data.address.postal_code}`;
+          }
+
+          // Enable submit button
+          const checkoutSubmitBtn = document.querySelector('button[type="submit"]');
+          if(checkoutSubmitBtn) {
+            checkoutSubmitBtn.disabled = false;
+            checkoutSubmitBtn.textContent = 'Buat Pesanan & Bayar';
+            checkoutSubmitBtn.className = 'btn btn-primary-custom w-100 py-2.5 fw-bold';
+          }
+          
+          // Re-enable address form button
+          const emptyBtnPlaceholder = document.querySelector('.btn-secondary[disabled]');
+          if(emptyBtnPlaceholder) {
+            const parent = emptyBtnPlaceholder.parentElement;
+            const activeBtn = document.createElement('button');
+            activeBtn.type = 'submit';
+            activeBtn.className = 'btn btn-primary-custom w-100 py-2.5 fw-bold';
+            activeBtn.textContent = 'Buat Pesanan & Bayar';
+            parent.replaceChild(activeBtn, emptyBtnPlaceholder);
+          }
+        } else {
+          alert('Gagal menyimpan alamat: ' + JSON.stringify(data.errors));
+        }
+      } catch(err) {
+        console.error(err);
+        alert('Terjadi kesalahan koneksi.');
+      } finally {
+        saveBtn.disabled = false;
+        saveBtn.textContent = 'Simpan Alamat';
+      }
+    });
+  }
+});
+</script>
+
+<!-- Modal Tambah Alamat -->
+<div class="modal fade" id="addAddressModal" tabindex="-1" aria-labelledby="addAddressModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow-lg" style="border-radius: 12px; overflow: hidden;">
+      <div class="modal-header bg-primary text-white border-0 py-3">
+        <h5 class="modal-title fw-bold" id="addAddressModalLabel"><i class="bi bi-geo-alt me-2"></i>Tambah Alamat Baru</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form id="ajax-address-form" method="POST" action="{% url 'address_add' %}">
+        {% csrf_token %}
+        <div class="modal-body p-4">
+          <div class="mb-3">
+            <label for="id_label" class="form-label small fw-semibold text-dark">Label Alamat</label>
+            <input type="text" name="label" id="id_label" class="form-control" placeholder="Contoh: Rumah, Kantor" required>
+          </div>
+          <div class="row g-3 mb-3">
+            <div class="col-md-6">
+              <label for="id_recipient_name" class="form-label small fw-semibold text-dark">Nama Penerima</label>
+              <input type="text" name="recipient_name" id="id_recipient_name" class="form-control" placeholder="Nama Penerima" required>
+            </div>
+            <div class="col-md-6">
+              <label for="id_phone_number" class="form-label small fw-semibold text-dark">Nomor Telepon</label>
+              <input type="text" name="phone_number" id="id_phone_number" class="form-control" placeholder="Nomor Telepon" required>
+            </div>
+          </div>
+          <div class="mb-3">
+            <label for="id_street_address" class="form-label small fw-semibold text-dark">Alamat Lengkap</label>
+            <textarea name="street_address" id="id_street_address" class="form-control" rows="3" placeholder="Nama jalan, gedung, blok, RT/RW" required></textarea>
+          </div>
+          <div class="row g-3 mb-3">
+            <div class="col-md-6">
+              <label for="id_city" class="form-label small fw-semibold text-dark">Kota/Kabupaten</label>
+              <input type="text" name="city" id="id_city" class="form-control" placeholder="Kota/Kabupaten" required>
+            </div>
+            <div class="col-md-6">
+              <label for="id_province" class="form-label small fw-semibold text-dark">Provinsi</label>
+              <input type="text" name="province" id="id_province" class="form-control" placeholder="Provinsi" required>
+            </div>
+          </div>
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label for="id_postal_code" class="form-label small fw-semibold text-dark">Kode Pos</label>
+              <input type="text" name="postal_code" id="id_postal_code" class="form-control" placeholder="Kode Pos" required>
+            </div>
+            <div class="col-md-6 d-flex align-items-end">
+              <div class="form-check mb-2">
+                <input class="form-check-input" type="checkbox" name="is_default" id="id_is_default" value="true">
+                <label class="form-check-label small fw-semibold text-dark" for="id_is_default">
+                  Jadikan Alamat Utama
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer bg-light border-0 py-3">
+          <button type="button" class="btn btn-outline-secondary fw-semibold btn-sm" data-bs-dismiss="modal">Batal</button>
+          <button type="submit" class="btn btn-primary fw-bold btn-sm" id="btn-save-address">Simpan Alamat</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

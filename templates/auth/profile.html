@@ -1,0 +1,88 @@
+{% extends 'base.html' %}
+{% block title %}Profil Saya | ElectroShop{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+  <div class="row">
+    <!-- Left Menu Bar -->
+    <div class="col-md-3 mb-4">
+      <div class="card shadow border-0 p-3" style="border-radius: 12px;">
+        <div class="text-center py-3">
+          {% if profile.avatar %}
+            <img src="{{ profile.avatar.url }}" alt="Avatar" class="rounded-circle mb-3 img-thumbnail" style="width: 100px; height: 100px; object-fit: cover;">
+          {% else %}
+            <i class="bi bi-person-circle text-primary" style="font-size: 80px;"></i>
+          {% endif %}
+          <h5 class="fw-bold mb-0">{{ user.username }}</h5>
+          <small class="text-muted">{{ user.email }}</small>
+        </div>
+        <hr>
+        <div class="list-group list-group-flush">
+          <a href="{% url 'profile' %}" class="list-group-item list-group-item-action active border-0 py-2.5 rounded"><i class="bi bi-person me-2"></i>Profil</a>
+          <a href="{% url 'address_list' %}" class="list-group-item list-group-item-action border-0 py-2.5 rounded"><i class="bi bi-geo-alt me-2"></i>Daftar Alamat</a>
+          <a href="{% url 'order_history' %}" class="list-group-item list-group-item-action border-0 py-2.5 rounded"><i class="bi bi-bag-check me-2"></i>Pesanan Saya</a>
+          <a href="{% url 'wishlist_list' %}" class="list-group-item list-group-item-action border-0 py-2.5 rounded"><i class="bi bi-heart me-2"></i>Wishlist</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Content Panel -->
+    <div class="col-md-9">
+      <div class="card shadow border-0 p-4" style="border-radius: 12px;">
+        <h4 class="fw-bold mb-4">Ubah Data Diri</h4>
+        
+        <form method="POST" action="{% url 'profile' %}" enctype="multipart/form-data">
+          {% csrf_token %}
+          
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label class="form-label fw-semibold">Username</label>
+              <input type="text" class="form-control" value="{{ user.username }}" disabled>
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label fw-semibold">Email</label>
+              <input type="email" class="form-control" value="{{ user.email }}" disabled>
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label for="id_phone_number" class="form-label fw-semibold">Nomor Telepon</label>
+              {{ profile_form.phone_number }}
+              {% if profile_form.phone_number.errors %}
+                <div class="text-danger small mt-1">{{ profile_form.phone_number.errors.0 }}</div>
+              {% endif %}
+            </div>
+            <div class="col-md-6 mb-3">
+              <label for="id_gender" class="form-label fw-semibold">Jenis Kelamin</label>
+              {{ profile_form.gender }}
+              {% if profile_form.gender.errors %}
+                <div class="text-danger small mt-1">{{ profile_form.gender.errors.0 }}</div>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label for="id_birth_date" class="form-label fw-semibold">Tanggal Lahir</label>
+              {{ profile_form.birth_date }}
+              {% if profile_form.birth_date.errors %}
+                <div class="text-danger small mt-1">{{ profile_form.birth_date.errors.0 }}</div>
+              {% endif %}
+            </div>
+            <div class="col-md-6 mb-4">
+              <label for="id_avatar" class="form-label fw-semibold">Foto Profil (Avatar)</label>
+              {{ profile_form.avatar }}
+              {% if profile_form.avatar.errors %}
+                <div class="text-danger small mt-1">{{ profile_form.avatar.errors.0 }}</div>
+              {% endif %}
+            </div>
+          </div>
+
+          <button type="submit" class="btn btn-primary-custom px-4 fw-bold">Simpan Perubahan</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

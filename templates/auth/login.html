@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+{% block title %}Masuk | ElectroShop{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+  <div class="row justify-content-center">
+    <div class="col-md-5">
+      <div class="card shadow border-0 p-4" style="border-radius: 16px;">
+        <div class="card-body">
+          <h3 class="card-title fw-bold text-center mb-4">Masuk ke ElectroShop</h3>
+          
+          <form method="POST" action="{% url 'login' %}">
+            {% csrf_token %}
+            
+            <div class="mb-3">
+              <label for="login-email" class="form-label fw-semibold">Email</label>
+              {{ form.email }}
+              {% if form.email.errors %}
+                <div class="text-danger small mt-1">{{ form.email.errors.0 }}</div>
+              {% endif %}
+            </div>
+            
+            <div class="mb-4">
+              <div class="d-flex justify-content-between mb-1">
+                <label for="login-password" class="form-label fw-semibold mb-0">Kata Sandi</label>
+                <a href="#" class="text-decoration-none small text-primary">Lupa kata sandi?</a>
+              </div>
+              {{ form.password }}
+              {% if form.password.errors %}
+                <div class="text-danger small mt-1">{{ form.password.errors.0 }}</div>
+              {% endif %}
+            </div>
+            
+            <button type="submit" class="btn btn-primary-custom w-100 py-2.5 fw-bold mb-3">Masuk</button>
+          </form>
+          
+          <div class="text-center mt-3">
+            <span class="text-muted">Belum punya akun?</span>
+            <a href="{% url 'register' %}" class="text-decoration-none fw-semibold text-primary ms-1">Daftar Sekarang</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,70 @@
+{% extends 'base.html' %}
+{% block title %}Laporan Ekspor Data | ElectroShop{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+  
+  <!-- Admin Navigation Subbar -->
+  <div class="card border-0 bg-light p-3 mb-4" style="border-radius: 12px;">
+    <div class="d-flex flex-wrap gap-2 align-items-center">
+      <h5 class="fw-bold mb-0 text-primary me-3"><i class="bi bi-speedometer2 me-2"></i>Admin Area</h5>
+      <a href="{% url 'dashboard_index' %}" class="btn btn-outline-secondary btn-sm fw-semibold">Ringkasan</a>
+      <a href="{% url 'admin_product_list' %}" class="btn btn-outline-secondary btn-sm fw-semibold">Produk</a>
+      <a href="{% url 'admin_category_list' %}" class="btn btn-outline-secondary btn-sm fw-semibold">Kategori</a>
+      <a href="{% url 'admin_coupon_list' %}" class="btn btn-outline-secondary btn-sm fw-semibold">Kupon Voucher</a>
+      <a href="{% url 'admin_order_list' %}" class="btn btn-outline-secondary btn-sm fw-semibold">Pesanan</a>
+      <a href="{% url 'admin_user_list' %}" class="btn btn-outline-secondary btn-sm fw-semibold">User Pelanggan</a>
+      <a href="{% url 'admin_reports' %}" class="btn btn-primary btn-sm fw-semibold">Laporan Ekspor</a>
+    </div>
+  </div>
+
+  <h4 class="fw-bold mb-4 text-dark"><i class="bi bi-file-earmark-bar-graph text-primary me-2"></i>Pusat Laporan Ekspor</h4>
+  
+  <div class="row g-4">
+    <!-- Report Section 1: Sales Report -->
+    <div class="col-md-4">
+      <div class="card shadow border-0 p-4 h-100" style="border-radius: 12px;">
+        <div class="text-primary mb-3"><i class="bi bi-cash-stack fs-1"></i></div>
+        <h5 class="fw-bold text-dark mb-2">Laporan Transaksi Penjualan</h5>
+        <p class="text-muted small mb-4">Mengekspor seluruh riwayat penjualan produk, ongkos kirim, diskon voucher, status pembayaran, dan tanggal transaksi.</p>
+        
+        <div class="d-flex flex-column gap-2 mt-auto">
+          <a href="{% url 'admin_reports_export' %}?type=sales&format=csv" class="btn btn-outline-secondary btn-sm text-start"><i class="bi bi-filetype-csv text-danger me-2"></i>Ekspor CSV</a>
+          <a href="{% url 'admin_reports_export' %}?type=sales&format=excel" class="btn btn-outline-secondary btn-sm text-start"><i class="bi bi-file-earmark-excel text-success me-2"></i>Ekspor Excel (.xlsx)</a>
+          <a href="{% url 'admin_reports_export' %}?type=sales&format=pdf" class="btn btn-outline-secondary btn-sm text-start"><i class="bi bi-file-pdf text-primary me-2"></i>Ekspor PDF</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Report Section 2: Products Inventory -->
+    <div class="col-md-4">
+      <div class="card shadow border-0 p-4 h-100" style="border-radius: 12px;">
+        <div class="text-success mb-3"><i class="bi bi-cpu fs-1"></i></div>
+        <h5 class="fw-bold text-dark mb-2">Laporan Inventaris Produk</h5>
+        <p class="text-muted small mb-4">Mengekspor daftar seluruh produk terdaftar di sistem, kode SKU, kategori, brand produsen, harga retail, dan stok unit.</p>
+        
+        <div class="d-flex flex-column gap-2 mt-auto">
+          <a href="{% url 'admin_reports_export' %}?type=product&format=csv" class="btn btn-outline-secondary btn-sm text-start"><i class="bi bi-filetype-csv text-danger me-2"></i>Ekspor CSV</a>
+          <a href="{% url 'admin_reports_export' %}?type=product&format=excel" class="btn btn-outline-secondary btn-sm text-start"><i class="bi bi-file-earmark-excel text-success me-2"></i>Ekspor Excel (.xlsx)</a>
+          <a href="{% url 'admin_reports_export' %}?type=product&format=pdf" class="btn btn-outline-secondary btn-sm text-start"><i class="bi bi-file-pdf text-primary me-2"></i>Ekspor PDF</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Report Section 3: Customer Activity -->
+    <div class="col-md-4">
+      <div class="card shadow border-0 p-4 h-100" style="border-radius: 12px;">
+        <div class="text-warning mb-3"><i class="bi bi-people fs-1"></i></div>
+        <h5 class="fw-bold text-dark mb-2">Laporan User & Pelanggan</h5>
+        <p class="text-muted small mb-4">Mengekspor daftar pelanggan terdaftar, tanggal pembuatan akun, status keaktifan, dan total jumlah transaksi order.</p>
+        
+        <div class="d-flex flex-column gap-2 mt-auto">
+          <a href="{% url 'admin_reports_export' %}?type=customer&format=csv" class="btn btn-outline-secondary btn-sm text-start"><i class="bi bi-filetype-csv text-danger me-2"></i>Ekspor CSV</a>
+          <a href="{% url 'admin_reports_export' %}?type=customer&format=excel" class="btn btn-outline-secondary btn-sm text-start"><i class="bi bi-file-earmark-excel text-success me-2"></i>Ekspor Excel (.xlsx)</a>
+          <a href="{% url 'admin_reports_export' %}?type=customer&format=pdf" class="btn btn-outline-secondary btn-sm text-start"><i class="bi bi-file-pdf text-primary me-2"></i>Ekspor PDF</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

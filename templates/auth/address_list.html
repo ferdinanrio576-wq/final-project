@@ -1,0 +1,84 @@
+{% extends 'base.html' %}
+{% block title %}Alamat Saya | ElectroShop{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+  <div class="row">
+    <!-- Left Menu Bar -->
+    <div class="col-md-3 mb-4">
+      <div class="card shadow border-0 p-3" style="border-radius: 12px;">
+        <div class="text-center py-3">
+          {% if user.profile.avatar %}
+            <img src="{{ user.profile.avatar.url }}" alt="Avatar" class="rounded-circle mb-3 img-thumbnail" style="width: 100px; height: 100px; object-fit: cover;">
+          {% else %}
+            <i class="bi bi-person-circle text-primary" style="font-size: 80px;"></i>
+          {% endif %}
+          <h5 class="fw-bold mb-0">{{ user.username }}</h5>
+          <small class="text-muted">{{ user.email }}</small>
+        </div>
+        <hr>
+        <div class="list-group list-group-flush">
+          <a href="{% url 'profile' %}" class="list-group-item list-group-item-action border-0 py-2.5 rounded"><i class="bi bi-person me-2"></i>Profil</a>
+          <a href="{% url 'address_list' %}" class="list-group-item list-group-item-action active border-0 py-2.5 rounded"><i class="bi bi-geo-alt me-2"></i>Daftar Alamat</a>
+          <a href="{% url 'order_history' %}" class="list-group-item list-group-item-action border-0 py-2.5 rounded"><i class="bi bi-bag-check me-2"></i>Pesanan Saya</a>
+          <a href="{% url 'wishlist_list' %}" class="list-group-item list-group-item-action border-0 py-2.5 rounded"><i class="bi bi-heart me-2"></i>Wishlist</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Content Panel -->
+    <div class="col-md-9">
+      <div class="card shadow border-0 p-4" style="border-radius: 12px;">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+          <h4 class="fw-bold mb-0">Alamat Pengiriman</h4>
+          <a href="{% url 'address_add' %}" class="btn btn-primary-custom fw-semibold"><i class="bi bi-plus-lg me-1"></i>Tambah Alamat Baru</a>
+        </div>
+        
+        {% if addresses %}
+          <div class="row g-3">
+            {% for addr in addresses %}
+              <div class="col-12">
+                <div class="card border {% if addr.is_default %}border-primary{% else %}border-secondary{% endif %} p-3" style="border-radius: 10px;">
+                  <div class="d-flex justify-content-between align-items-start mb-2">
+                    <div>
+                      <span class="badge {% if addr.is_default %}bg-primary{% else %}bg-secondary{% endif %} me-2">{{ addr.label }}</span>
+                      {% if addr.is_default %}
+                        <span class="badge bg-light text-primary border border-primary">Utama</span>
+                      {% endif %}
+                    </div>
+                    <div class="dropdown">
+                      <button class="btn btn-light btn-sm border" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="bi bi-three-dots-vertical"></i>
+                      </button>
+                      <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" href="{% url 'address_edit' addr.id %}"><i class="bi bi-pencil me-2"></i>Ubah</a></li>
+                        <li>
+                          <form action="{% url 'address_delete' addr.id %}" method="POST" onsubmit="return confirm('Apakah Anda yakin ingin menghapus alamat ini?');" class="d-inline">
+                            {% csrf_token %}
+                            <button type="submit" class="dropdown-item text-danger"><i class="bi bi-trash me-2"></i>Hapus</button>
+                          </form>
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+                  
+                  <h6 class="fw-bold mb-1">{{ addr.recipient_name }}</h6>
+                  <p class="mb-1 text-muted">{{ addr.phone_number }}</p>
+                  <p class="mb-0 text-muted" style="font-size: 0.9rem;">{{ addr.street_address }}, {{ addr.city }}, {{ addr.province }}, {{ addr.postal_code }}</p>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="empty-state text-center py-5">
+            <i class="bi bi-geo-alt text-muted" style="font-size: 50px;"></i>
+            <h5 class="fw-bold mt-3">Belum ada Alamat</h5>
+            <p class="text-muted">Tambahkan alamat pengiriman untuk mempermudah proses checkout pesanan Anda.</p>
+            <a href="{% url 'address_add' %}" class="btn btn-primary-custom mt-2"><i class="bi bi-plus-lg me-1"></i>Buat Alamat Pertama</a>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

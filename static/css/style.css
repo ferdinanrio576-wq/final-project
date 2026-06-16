@@ -1,0 +1,301 @@
+/* Custom Colors & Tokens */
+:root {
+  --primary: #00b0ff;
+  --primary-hover: #0091ea;
+  --secondary: #26a69a;
+  --dark-bg: #0f172a;
+  --dark-card: #1e293b;
+  --light-bg: #f8fafc;
+  --light-card: #ffffff;
+  --text-dark: #0f172a;
+  --text-light: #f8fafc;
+  --text-muted: #64748b;
+  --border-color: #e2e8f0;
+  --success: #10b981;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --transition: all 0.3s ease;
+}
+
+body {
+  font-family: 'Outfit', 'Inter', sans-serif;
+  background-color: var(--light-bg);
+  color: var(--text-dark);
+  transition: var(--transition);
+}
+
+/* Dark Mode Overrides */
+body.dark-mode {
+  background-color: var(--dark-bg);
+  color: var(--text-light);
+}
+
+body.dark-mode .card,
+body.dark-mode .modal-content,
+body.dark-mode .dropdown-menu {
+  background-color: var(--dark-card);
+  color: var(--text-light);
+  border-color: #334155;
+}
+
+body.dark-mode .table,
+body.dark-mode .list-group-item {
+  background-color: var(--dark-card);
+  color: var(--text-light);
+  border-color: #334155;
+}
+
+body.dark-mode input,
+body.dark-mode select,
+body.dark-mode textarea {
+  background-color: #1e293b;
+  color: var(--text-light);
+  border-color: #475569;
+}
+
+body.dark-mode input:focus,
+body.dark-mode select:focus,
+body.dark-mode textarea:focus {
+  background-color: #1e293b;
+  color: var(--text-light);
+  border-color: var(--primary);
+}
+
+body.dark-mode .border,
+body.dark-mode .border-bottom,
+body.dark-mode .border-top {
+  border-color: #334155 !important;
+}
+
+body.dark-mode .bg-light {
+  background-color: #1e293b !important;
+}
+
+body.dark-mode .text-dark {
+  color: var(--text-light) !important;
+}
+
+/* Glassmorphism & Header Styling */
+.navbar-custom {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(226, 232, 240, 0.8);
+  position: sticky;
+  top: 0;
+  z-index: 1020;
+  transition: var(--transition);
+}
+
+body.dark-mode .navbar-custom {
+  background: rgba(15, 23, 42, 0.85);
+  border-bottom: 1px solid rgba(51, 65, 85, 0.8);
+}
+
+/* Premium Buttons */
+.btn-primary-custom {
+  background: linear-gradient(135deg, var(--primary), #00e5ff);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 0.6rem 1.5rem;
+  font-weight: 600;
+  box-shadow: 0 4px 15px rgba(0, 176, 255, 0.2);
+  transition: var(--transition);
+}
+
+.btn-primary-custom:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 176, 255, 0.4);
+  color: white;
+}
+
+/* Product Cards */
+.product-card {
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  background-color: var(--light-card);
+  overflow: hidden;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  transition: var(--transition);
+}
+
+.product-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+  border-color: var(--primary);
+}
+
+.product-image-container {
+  position: relative;
+  overflow: hidden;
+  padding-top: 100%; /* 1:1 Aspect Ratio */
+}
+
+.product-image-container img {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: var(--transition);
+}
+
+.product-card:hover .product-image-container img {
+  transform: scale(1.08);
+}
+
+.product-badge-discount {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  background-color: var(--danger);
+  color: white;
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 0.25rem 0.6rem;
+  border-radius: 6px;
+  z-index: 10;
+}
+
+.product-badge-featured {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background-color: var(--warning);
+  color: white;
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 0.25rem 0.6rem;
+  border-radius: 6px;
+  z-index: 10;
+}
+
+/* Custom Badges */
+.badge-custom {
+  padding: 0.4rem 0.8rem;
+  border-radius: 6px;
+  font-weight: 600;
+}
+
+/* Skeleton Loading Animation */
+.skeleton {
+  background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+  background-size: 200% 100%;
+  animation: loading-animation 1.5s infinite;
+  border-radius: 8px;
+}
+
+body.dark-mode .skeleton {
+  background: linear-gradient(90deg, #1e293b 25%, #334155 50%, #1e293b 75%);
+  background-size: 200% 100%;
+}
+
+@keyframes loading-animation {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.skeleton-text {
+  height: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.skeleton-title {
+  height: 1.5rem;
+  margin-bottom: 1rem;
+  width: 80%;
+}
+
+.skeleton-img {
+  width: 100%;
+  height: 200px;
+}
+
+/* Toast Notifications */
+.toast-container {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 9999;
+}
+
+/* Dashboard Cards */
+.dashboard-stat-card {
+  border-radius: 16px;
+  border: none;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
+  transition: var(--transition);
+}
+
+.dashboard-stat-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.06);
+}
+
+/* Timeline/Order Track */
+.track-timeline {
+  list-style: none;
+  padding: 0;
+  position: relative;
+}
+
+.track-timeline::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 20px;
+  width: 3px;
+  background-color: var(--border-color);
+}
+
+body.dark-mode .track-timeline::before {
+  background-color: #334155;
+}
+
+.track-timeline-item {
+  position: relative;
+  padding-left: 50px;
+  margin-bottom: 2rem;
+}
+
+.track-timeline-marker {
+  position: absolute;
+  left: 10px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background-color: #cbd5e1;
+  border: 4px solid var(--light-card);
+  transition: var(--transition);
+}
+
+body.dark-mode .track-timeline-marker {
+  border-color: var(--dark-card);
+  background-color: #475569;
+}
+
+.track-timeline-item.active .track-timeline-marker {
+  background-color: var(--primary);
+  box-shadow: 0 0 10px rgba(0, 176, 255, 0.6);
+}
+
+/* Empty State Card */
+.empty-state {
+  text-align: center;
+  padding: 4rem 2rem;
+}
+
+.empty-state img {
+  max-width: 220px;
+  margin-bottom: 1.5rem;
+  opacity: 0.8;
+}

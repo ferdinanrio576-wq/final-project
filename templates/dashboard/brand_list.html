@@ -1,0 +1,70 @@
+{% extends 'base.html' %}
+{% block title %}Kelola Brand | ElectroShop{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+  <div class="card border-0 bg-light p-3 mb-4" style="border-radius: 12px;">
+    <div class="d-flex flex-wrap gap-2 align-items-center">
+      <h5 class="fw-bold mb-0 text-primary me-3"><i class="bi bi-speedometer2 me-2"></i>Admin Area</h5>
+      <a href="{% url 'dashboard_index' %}" class="btn btn-outline-secondary btn-sm fw-semibold">Ringkasan</a>
+      <a href="{% url 'admin_product_list' %}" class="btn btn-outline-secondary btn-sm fw-semibold">Produk</a>
+      <a href="{% url 'admin_category_list' %}" class="btn btn-outline-secondary btn-sm fw-semibold">Kategori</a>
+      <a href="{% url 'admin_brand_list' %}" class="btn btn-primary btn-sm fw-semibold">Brand</a>
+      <a href="{% url 'admin_coupon_list' %}" class="btn btn-outline-secondary btn-sm fw-semibold">Kupon Voucher</a>
+      <a href="{% url 'admin_order_list' %}" class="btn btn-outline-secondary btn-sm fw-semibold">Pesanan</a>
+      <a href="{% url 'admin_user_list' %}" class="btn btn-outline-secondary btn-sm fw-semibold">User Pelanggan</a>
+      <a href="{% url 'admin_reports' %}" class="btn btn-outline-secondary btn-sm fw-semibold">Laporan Ekspor</a>
+    </div>
+  </div>
+
+  <div class="card shadow border-0 p-4" style="border-radius: 12px;">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <h4 class="fw-bold mb-0 text-dark">Daftar Brand</h4>
+      <a href="{% url 'admin_brand_add' %}" class="btn btn-primary-custom fw-semibold"><i class="bi bi-plus-lg me-1"></i>Tambah Brand</a>
+    </div>
+
+    {% if brands %}
+      <div class="table-responsive">
+        <table class="table align-middle">
+          <thead>
+            <tr class="text-muted">
+              <th>ID</th>
+              <th>Nama Brand</th>
+              <th>Slug</th>
+              <th>Logo</th>
+              <th>Aksi</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for brand in brands %}
+              <tr>
+                <td>{{ brand.id }}</td>
+                <td class="fw-bold text-dark">{{ brand.name }}</td>
+                <td class="text-muted small">{{ brand.slug }}</td>
+                <td>
+                  {% if brand.logo %}
+                    <img src="{{ brand.logo.url }}" alt="{{ brand.name }}" class="rounded" style="width: 60px; height: 40px; object-fit: contain;">
+                  {% else %}
+                    <span class="text-muted">Tidak ada logo</span>
+                  {% endif %}
+                </td>
+                <td>
+                  <div class="d-flex gap-1">
+                    <a href="{% url 'admin_brand_edit' brand.id %}" class="btn btn-outline-primary btn-sm fw-semibold"><i class="bi bi-pencil"></i></a>
+                    <form action="{% url 'admin_brand_delete' brand.id %}" method="POST" onsubmit="return confirm('Yakin ingin menghapus brand ini?');">
+                      {% csrf_token %}
+                      <button type="submit" class="btn btn-outline-danger btn-sm"><i class="bi bi-trash"></i></button>
+                    </form>
+                  </div>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <p class="text-muted small">Belum ada brand terdaftar.</p>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

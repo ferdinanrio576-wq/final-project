@@ -1,0 +1,96 @@
+{% extends 'base.html' %}
+{% block title %}{% if object %}Ubah{% else %}Tambah{% endif %} Alamat | ElectroShop{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+  <div class="row justify-content-center">
+    <div class="col-md-8">
+      <div class="card shadow border-0 p-4" style="border-radius: 12px;">
+        <h4 class="fw-bold mb-4"><i class="bi bi-geo-alt-fill text-primary me-2"></i>{% if object %}Ubah{% else %}Tambah{% endif %} Alamat Pengiriman</h4>
+        
+        <form method="POST">
+          {% csrf_token %}
+          
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label for="id_label" class="form-label fw-semibold">Label Alamat</label>
+              {{ form.label }}
+              <div class="form-text">Contoh: Rumah, Kantor, Kosan</div>
+              {% if form.label.errors %}
+                <div class="text-danger small mt-1">{{ form.label.errors.0 }}</div>
+              {% endif %}
+            </div>
+            <div class="col-md-6 mb-3">
+              <label for="id_recipient_name" class="form-label fw-semibold">Nama Penerima</label>
+              {{ form.recipient_name }}
+              {% if form.recipient_name.errors %}
+                <div class="text-danger small mt-1">{{ form.recipient_name.errors.0 }}</div>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label for="id_phone_number" class="form-label fw-semibold">Nomor Telepon Penerima</label>
+              {{ form.phone_number }}
+              {% if form.phone_number.errors %}
+                <div class="text-danger small mt-1">{{ form.phone_number.errors.0 }}</div>
+              {% endif %}
+            </div>
+            <div class="col-md-6 mb-3">
+              <label for="id_postal_code" class="form-label fw-semibold">Kode Pos</label>
+              {{ form.postal_code }}
+              {% if form.postal_code.errors %}
+                <div class="text-danger small mt-1">{{ form.postal_code.errors.0 }}</div>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label for="id_street_address" class="form-label fw-semibold">Alamat Lengkap</label>
+            {{ form.street_address }}
+            <div class="form-text">Tulis jalan, nomor rumah, RT/RW, kelurahan, dan kecamatan.</div>
+            {% if form.street_address.errors %}
+              <div class="text-danger small mt-1">{{ form.street_address.errors.0 }}</div>
+            {% endif %}
+          </div>
+
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label for="id_city" class="form-label fw-semibold">Kota / Kabupaten</label>
+              {{ form.city }}
+              {% if form.city.errors %}
+                <div class="text-danger small mt-1">{{ form.city.errors.0 }}</div>
+              {% endif %}
+            </div>
+            <div class="col-md-6 mb-3">
+              <label for="id_province" class="form-label fw-semibold">Provinsi</label>
+              {{ form.province }}
+              {% if form.province.errors %}
+                <div class="text-danger small mt-1">{{ form.province.errors.0 }}</div>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="mb-4">
+            <div class="form-check">
+              {{ form.is_default }}
+              <label class="form-check-label fw-semibold" for="id_is_default">
+                Jadikan Alamat Utama
+              </label>
+            </div>
+            {% if form.is_default.errors %}
+              <div class="text-danger small mt-1">{{ form.is_default.errors.0 }}</div>
+            {% endif %}
+          </div>
+
+          <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-primary-custom px-4 fw-bold">Simpan Alamat</button>
+            <a href="{% url 'address_list' %}" class="btn btn-outline-secondary px-4 fw-semibold">Batal</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
