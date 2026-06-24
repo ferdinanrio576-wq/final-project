@@ -238,19 +238,41 @@ else:
 
 GOOGLE_MAPS_API_KEY = env('GOOGLE_MAPS_API_KEY', default='')
 
+# ============================================
+# VERCEL DEPLOYMENT FIX: Cookie-based Sessions
+# ============================================
+# Di Vercel (serverless), SQLite database tidak permanen.
+# Session harus disimpan di cookie browser agar login tidak hilang.
+IS_VERCEL = os.environ.get('VERCEL', False)
+
+if IS_VERCEL:
+    # Session disimpan di cookie browser, bukan di database
+    SESSION_ENGINE = 'django.contrib.sessions.backends.signed_cookies'
+    SESSION_COOKIE_HTTPONLY = True
+    SESSION_COOKIE_SAMESITE = 'Lax'
+    SESSION_COOKIE_SECURE = True
+    SESSION_COOKIE_AGE = 60 * 60 * 24 * 7  # 7 hari
+
+    # Message storage juga harus pakai cookie (bukan session DB)
+    MESSAGE_STORAGE = 'django.contrib.messages.storage.cookie.CookieStorage'
+
+# CSRF & SSL — HARUS selalu aktif di Vercel (jangan masuk if not DEBUG)
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+CSRF_TRUSTED_ORIGINS = [
+    'https://electroshopone.vercel.app',
+    'https://*.vercel.app',
+    'http://localhost:8000',
+    'http://127.0.0.1:8000',
+]
+
 # Security headers for production
 if not DEBUG:
-    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-    CSRF_TRUSTED_ORIGINS = ['https://electroshopp.vercel.app', 'https://*.vercel.app']
-    CSRF_COOKIE_SECURE = env('CSRF_COOKIE_SECURE', cast=bool, default=True)
-    SESSION_COOKIE_SECURE = env('SESSION_COOKIE_SECURE', cast=bool, default=True)
-    SECURE_SSL_REDIRECT = env('SECURE_SSL_REDIRECT', cast=bool, default=True)
+    CSRF_COOKIE_SECURE = True
     SECURE_BROWSER_XSS_FILTER = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
     X_FRAME_OPTIONS = 'DENY'
-    SECURE_HSTS_SECONDS = 31536000
-    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
-    SECURE_HSTS_PRELOAD = True
+    # JANGAN aktifkan SECURE_SSL_REDIRECT di Vercel (Vercel sudah handle HTTPS sendiri)
+    SECURE_SSL_REDIRECT = False
 
 # CORS Config
 CORS_ALLOW_ALL_ORIGINS = True # Change to specific origins in production
