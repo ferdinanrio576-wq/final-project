@@ -239,24 +239,28 @@ else:
 GOOGLE_MAPS_API_KEY = env('GOOGLE_MAPS_API_KEY', default='')
 
 # ============================================
-# VERCEL DEPLOYMENT FIX: Cookie-based Sessions
+# SESSION: Cookie-based (WAJIB untuk Vercel)
 # ============================================
-# Di Vercel (serverless), SQLite database tidak permanen.
-# Session harus disimpan di cookie browser agar login tidak hilang.
-IS_VERCEL = os.environ.get('VERCEL', False)
+# Di Vercel (serverless), SQLite database bersifat ephemeral.
+# Session HARUS disimpan di cookie browser, bukan di database.
+# Kita aktifkan ini SELALU (bukan hanya di Vercel) agar konsisten.
+SESSION_ENGINE = 'django.contrib.sessions.backends.signed_cookies'
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = 'Lax'
+SESSION_COOKIE_AGE = 60 * 60 * 24 * 7  # 7 hari
+SESSION_COOKIE_NAME = 'electroshop_session'
 
-if IS_VERCEL:
-    # Session disimpan di cookie browser, bukan di database
-    SESSION_ENGINE = 'django.contrib.sessions.backends.signed_cookies'
-    SESSION_COOKIE_HTTPONLY = True
-    SESSION_COOKIE_SAMESITE = 'Lax'
-    SESSION_COOKIE_SECURE = True
-    SESSION_COOKIE_AGE = 60 * 60 * 24 * 7  # 7 hari
+# Di Vercel (HTTPS), cookie harus Secure. Di lokal (HTTP), tidak boleh Secure.
+IS_VERCEL = bool(os.environ.get('VERCEL', ''))
+SESSION_COOKIE_SECURE = IS_VERCEL  # True di Vercel, False di lokal
+CSRF_COOKIE_SECURE = IS_VERCEL
 
-    # Message storage juga harus pakai cookie (bukan session DB)
-    MESSAGE_STORAGE = 'django.contrib.messages.storage.cookie.CookieStorage'
+# Message storage juga harus pakai cookie (bukan session DB)
+MESSAGE_STORAGE = 'django.contrib.messages.storage.cookie.CookieStorage'
 
-# CSRF & SSL — HARUS selalu aktif di Vercel (jangan masuk if not DEBUG)
+# ============================================
+# CSRF & Security
+# ============================================
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 CSRF_TRUSTED_ORIGINS = [
     'https://electroshopone.vercel.app',
@@ -265,19 +269,18 @@ CSRF_TRUSTED_ORIGINS = [
     'http://127.0.0.1:8000',
 ]
 
-# Security headers for production
 if not DEBUG:
-    CSRF_COOKIE_SECURE = True
     SECURE_BROWSER_XSS_FILTER = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
     X_FRAME_OPTIONS = 'DENY'
-    # JANGAN aktifkan SECURE_SSL_REDIRECT di Vercel (Vercel sudah handle HTTPS sendiri)
-    SECURE_SSL_REDIRECT = False
+# JANGAN aktifkan SECURE_SSL_REDIRECT (Vercel sudah handle HTTPS sendiri)
+SECURE_SSL_REDIRECT = False
 
 # CORS Config
-CORS_ALLOW_ALL_ORIGINS = True # Change to specific origins in production
+CORS_ALLOW_ALL_ORIGINS = True
 
 # Login redirection
 LOGIN_URL = 'login'
 LOGIN_REDIRECT_URL = 'product_list'
 LOGOUT_REDIRECT_URL = 'product_list'
+
