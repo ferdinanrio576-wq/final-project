@@ -1,3 +1,4 @@
+import uuid
 from django.shortcuts import render, redirect, get_object_or_404
 from django.views import View
 from django.views.generic import TemplateView, ListView, DetailView
@@ -13,16 +14,27 @@ from payments.models import Payment
 from django.conf import settings
 
 
+def get_session_key(request):
+    """Dapatkan session key yang kompatibel dengan cookie-based sessions.
+    Cookie-based sessions tidak punya session_key, jadi kita pakai UUID di session."""
+    key = getattr(request.session, 'session_key', None)
+    if key:
+        return key
+    # Fallback: simpan UUID di session data
+    key = request.session.get('_cart_session_id')
+    if not key:
+        key = str(uuid.uuid4())
+        request.session['_cart_session_id'] = key
+    return key
+
+
 class CartDetailView(TemplateView):
     template_name = 'cart/cart_detail.html'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         service = CartService()
-        session_key = self.request.session.session_key
-        if not session_key:
-            self.request.session.create()
-            session_key = self.request.session.session_key
+        session_key = get_session_key(self.request)
 
         cart = service.get_cart(user=self.request.user if self.request.user.is_authenticated else None, session_key=session_key)
         context['cart'] = cart
@@ -33,10 +45,7 @@ class CartDetailView(TemplateView):
 class AddToCartView(View):
     def post(self, request, product_id):
         service = CartService()
-        session_key = request.session.session_key
-        if not session_key:
-            request.session.create()
-            session_key = request.session.session_key
+        session_key = get_session_key(request)
 
         cart = service.get_cart(user=request.user if request.user.is_authenticated else None, session_key=session_key)
         quantity = int(request.POST.get('quantity', 1))
@@ -53,7 +62,7 @@ class AddToCartView(View):
 class UpdateCartItemView(View):
     def post(self, request, product_id):
         service = CartService()
-        session_key = request.session.session_key
+        session_key = get_session_key(request)
         cart = service.get_cart(user=request.user if request.user.is_authenticated else None, session_key=session_key)
         quantity = int(request.POST.get('quantity'))
 
@@ -73,7 +82,7 @@ class UpdateCartItemView(View):
 class RemoveCartItemView(View):
     def post(self, request, product_id):
         service = CartService()
-        session_key = request.session.session_key
+        session_key = get_session_key(request)
         cart = service.get_cart(user=request.user if request.user.is_authenticated else None, session_key=session_key)
 
         service.remove_item(cart, product_id)
