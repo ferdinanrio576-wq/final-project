@@ -81,21 +81,18 @@ WSGI_APPLICATION = 'electro_shop.wsgi.application'
 ASGI_APPLICATION = 'electro_shop.asgi.application'
 
 # Database Configuration
-# Fallback to SQLite if DB credentials are not set in .env
-DB_NAME = env('DB_NAME', default='')
-if DB_NAME:
+# Di Vercel, kita WAJIB menggunakan PostgreSQL (Supabase/Neon/Vercel Postgres) 
+# karena SQLite akan terhapus otomatis setiap kali server restart.
+# Cukup tambahkan environment variable `DATABASE_URL` di dashboard Vercel.
+
+if env('DATABASE_URL', default=None):
+    # Jika ada DATABASE_URL (seperti di Vercel), gunakan itu
     DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.postgresql',
-            'NAME': env('DB_NAME'),
-            'USER': env('DB_USER'),
-            'PASSWORD': env('DB_PASSWORD'),
-            'HOST': env('DB_HOST'),
-            'PORT': env('DB_PORT'),
-        }
+        'default': env.db('DATABASE_URL')
     }
 else:
-    DEFAULT_SQLITE_PATH = Path('/tmp/db.sqlite3') if os.environ.get('VERCEL') else BASE_DIR / 'db.sqlite3'
+    # Fallback ke SQLite untuk development lokal
+    DEFAULT_SQLITE_PATH = BASE_DIR / 'db.sqlite3'
     SQLITE_DB_PATH = env('SQLITE_DB_PATH', default=str(DEFAULT_SQLITE_PATH))
 
     DATABASES = {
