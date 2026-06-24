@@ -91,8 +91,8 @@ if env('DATABASE_URL', default=None):
         'default': env.db('DATABASE_URL')
     }
 else:
-    # Fallback ke SQLite untuk development lokal
-    DEFAULT_SQLITE_PATH = BASE_DIR / 'db.sqlite3'
+    # Fallback ke SQLite untuk development lokal atau Vercel tanpa Postgres
+    DEFAULT_SQLITE_PATH = Path('/tmp/db.sqlite3') if os.environ.get('VERCEL') else BASE_DIR / 'db.sqlite3'
     SQLITE_DB_PATH = env('SQLITE_DB_PATH', default=str(DEFAULT_SQLITE_PATH))
 
     DATABASES = {
