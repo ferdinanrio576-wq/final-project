@@ -12,6 +12,12 @@ if os.environ.get('VERCEL'):
     if source_db.exists() and not target_db.exists():
         target_db.parent.mkdir(parents=True, exist_ok=True)
         copy2(source_db, target_db)
+        
+    source_media = base_dir / 'media'
+    target_media = Path('/tmp/media')
+    if source_media.exists() and not target_media.exists():
+        import shutil
+        shutil.copytree(source_media, target_media)
 
 application = get_wsgi_application()
 
