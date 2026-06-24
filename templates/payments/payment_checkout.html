@@ -1,0 +1,138 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% block title %}Pembayaran Transfer Bank | ElectroShop{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+  <div class="row justify-content-center">
+    <div class="col-md-6">
+      <div class="card shadow border-0 p-4" style="border-radius: 16px;">
+        <div class="card-body">
+          <div class="text-center mb-4">
+            <i class="bi bi-bank text-primary" style="font-size: 60px;"></i>
+            <h4 class="fw-bold mt-3 mb-1">Transfer Bank Manual</h4>
+            <p class="text-muted small">Silakan lakukan transfer ke rekening resmi berikut</p>
+          </div>
+          
+          <hr class="text-secondary my-4">
+          
+          <!-- Bank Destination Account Card -->
+          <div class="bg-light p-4 rounded mb-4" style="border-left: 4px solid var(--bs-primary);">
+            <div class="mb-3">
+              <span class="text-muted small d-block">Bank Penerima</span>
+              <strong class="text-dark fs-5">Bank BCA</strong>
+            </div>
+            
+            <div class="mb-3">
+              <span class="text-muted small d-block">Nomor Rekening</span>
+              <div class="d-flex align-items-center justify-content-between">
+                <strong class="text-dark fs-5" id="rekening-number">123-456-7890</strong>
+                <button type="button" class="btn btn-sm btn-outline-primary py-1" onclick="copyRekening()"><i class="bi bi-clipboard me-1"></i>Salin</button>
+              </div>
+            </div>
+            
+            <div>
+              <span class="text-muted small d-block">Atas Nama (Pemilik Rekening)</span>
+              <strong class="text-dark fs-5">PT ElectroShop Indonesia</strong>
+            </div>
+          </div>
+          
+          <!-- Amount with highlighted unique code -->
+          <div class="bg-primary bg-opacity-10 p-4 rounded mb-4 text-center">
+            <span class="text-muted small d-block mb-1">Total yang Harus Ditransfer</span>
+            <div class="fs-2 fw-bold text-primary mb-1">
+              Rp {{ order.payment_amount|floatformat:0|intcomma }}
+            </div>
+            <div class="small text-danger fw-semibold">
+              <i class="bi bi-info-circle me-1"></i>
+              Wajib transfer tepat hingga 3 digit terakhir: <strong>{{ order.unique_code }}</strong>
+            </div>
+          </div>
+
+          <div class="alert alert-warning small mb-4">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+            Mohon transfer nominal yang tepat agar pembayaran Anda dapat diverifikasi dengan cepat oleh sistem/admin kami. Simpan bukti transfer Anda.
+          </div>
+
+          <form method="POST" enctype="multipart/form-data">
+            {% csrf_token %}
+            <input type="hidden" name="payment_method" value="BANK_TRANSFER">
+
+            <div class="mb-3">
+              <label for="selected_bank" class="form-label small fw-semibold">Pilih Bank Transfer</label>
+              <select name="selected_bank" id="selected_bank" class="form-select">
+                <option value="">-- Pilih Bank --</option>
+                {% for code, label in bank_choices %}
+                  <option value="{{ code }}" {% if code == default_bank %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <div class="bg-light p-4 rounded mb-4" style="border-left: 4px solid var(--bs-primary);">
+              <div class="mb-3">
+                <span class="text-muted small d-block">Bank Penerima</span>
+                <strong class="text-dark fs-5" id="account-bank-name">{{ default_bank }}</strong>
+              </div>
+              <div class="mb-3">
+                <span class="text-muted small d-block">Nomor Rekening</span>
+                <div class="d-flex align-items-center justify-content-between">
+                  <strong class="text-dark fs-5" id="rekening-number">1234567890</strong>
+                  <button type="button" class="btn btn-sm btn-outline-primary py-1" onclick="copyRekening()"><i class="bi bi-clipboard me-1"></i>Salin</button>
+                </div>
+              </div>
+              <div>
+                <span class="text-muted small d-block">Atas Nama (Pemilik Rekening)</span>
+                <strong class="text-dark fs-5" id="account-owner">PT ElectroShop Indonesia</strong>
+              </div>
+            </div>
+
+            <div class="mb-4">
+              <label for="proof_of_transfer" class="form-label small fw-semibold mb-1">Bukti Transfer</label>
+              <input type="file" name="proof_of_transfer" id="proof_of_transfer" accept="image/jpeg,image/png" class="form-control" required>
+              <div class="form-text">Unggah bukti transfer JPG/PNG max 70KB.</div>
+            </div>
+
+            <button type="submit" class="btn btn-primary-custom w-100 py-2.5 fw-bold mb-3">
+              <i class="bi bi-check-circle-fill me-2"></i>Saya Sudah Transfer
+            </button>
+
+            <a href="{% url 'order_detail' order.order_number %}" class="btn btn-outline-secondary w-100 py-2 fw-semibold">Bayar Nanti / Lihat Detail Pesanan</a>
+          </form>
+          {{ bank_accounts|json_script:"bank-accounts-data" }}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const bankAccountsData = JSON.parse(document.getElementById('bank-accounts-data').textContent);
+
+function updateBankInfo() {
+  const selectedBank = document.getElementById('selected_bank').value;
+  const bankAccount = bankAccountsData[selectedBank];
+  if (bankAccount) {
+    document.getElementById('account-bank-name').textContent = bankAccount.name;
+    document.getElementById('rekening-number').textContent = bankAccount.account_number;
+    document.getElementById('account-owner').textContent = bankAccount.account_name;
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const bankSelect = document.getElementById('selected_bank');
+  if (bankSelect) {
+    bankSelect.addEventListener('change', updateBankInfo);
+    updateBankInfo();
+  }
+});
+
+function copyRekening() {
+  const rekNum = document.getElementById('rekening-number').textContent;
+  navigator.clipboard.writeText(rekNum).then(() => {
+    alert('Nomor rekening berhasil disalin!');
+  }).catch(err => {
+    console.error('Failed to copy text: ', err);
+  });
+}
+</script>
+{% endblock %}

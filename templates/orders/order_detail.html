@@ -1,0 +1,174 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% block title %}Detail Pesanan {{ order.order_number }} | ElectroShop{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h3 class="fw-bold mb-0"><i class="bi bi-receipt text-primary me-2"></i>Detail Pesanan</h3>
+      <small class="text-muted">Nomor Pesanan: <strong class="text-dark">{{ order.order_number }}</strong></small>
+    </div>
+    <a href="{% url 'order_history' %}" class="btn btn-outline-secondary btn-sm fw-semibold"><i class="bi bi-arrow-left me-1"></i>Kembali</a>
+  </div>
+
+  <div class="row g-4">
+    <!-- Left: Status Timeline, Address, and Item Listing -->
+    <div class="col-lg-8">
+      
+      <!-- 1. Order Tracking Timeline -->
+      <div class="card shadow border-0 p-4 mb-4" style="border-radius: 12px;">
+        <h5 class="fw-bold mb-4 text-dark"><i class="bi bi-signpost-split me-2 text-primary"></i>Status Pengiriman</h5>
+        
+        <ul class="track-timeline">
+          <!-- Step 1: Pesanan Dibuat -->
+          <li class="track-timeline-item active">
+            <div class="track-timeline-marker"></div>
+            <h6 class="fw-bold mb-1 text-dark">Pesanan Dibuat</h6>
+            <p class="text-muted small mb-0">{{ order.created_at|date:"d M Y H:i" }} WIB</p>
+            <p class="text-muted small">Pesanan berhasil disimpan di sistem dan menunggu proses verifikasi.</p>
+          </li>
+          
+          <!-- Step 2: Pembayaran Terverifikasi -->
+          <li class="track-timeline-item {% if order.status != 'PENDING' and order.status != 'CANCELLED' %}active{% endif %}">
+            <div class="track-timeline-marker"></div>
+            <h6 class="fw-bold mb-1 text-dark">Pembayaran Sukses</h6>
+            {% if order.status != 'PENDING' and order.status != 'CANCELLED' %}
+              <p class="text-muted small mb-0">Pembayaran telah terverifikasi.</p>
+            {% else %}
+              <p class="text-muted small">Menunggu pembayaran diselesaikan oleh pembeli.</p>
+            {% endif %}
+          </li>
+
+          <!-- Step 3: Dalam Pengiriman -->
+          <li class="track-timeline-item {% if order.status == 'SHIPPED' or order.status == 'COMPLETED' %}active{% endif %}">
+            <div class="track-timeline-marker"></div>
+            <h6 class="fw-bold mb-1 text-dark">Dalam Pengiriman</h6>
+            {% if order.shipment.tracking_number %}
+              <p class="text-muted small mb-0">Resi: <strong class="text-primary">{{ order.shipment.tracking_number }}</strong> via {{ order.shipment.courier }}</p>
+            {% else %}
+              <p class="text-muted small">Pesanan sedang disiapkan untuk dikirim kurir.</p>
+            {% endif %}
+          </li>
+
+          <!-- Step 4: Selesai -->
+          <li class="track-timeline-item {% if order.status == 'COMPLETED' %}active{% endif %}">
+            <div class="track-timeline-marker"></div>
+            <h6 class="fw-bold mb-1 text-dark">Pesanan Selesai</h6>
+            {% if order.status == 'COMPLETED' %}
+              <p class="text-muted small mb-0">{{ order.updated_at|date:"d M Y H:i" }} WIB</p>
+              <p class="text-muted small">Pesanan telah diterima oleh pembeli. Transaksi ditutup.</p>
+            {% else %}
+              <p class="text-muted small">Menunggu pesanan sampai ke alamat tujuan.</p>
+            {% endif %}
+          </li>
+        </ul>
+      </div>
+
+      <!-- 2. Address Snapshot -->
+      <div class="card shadow border-0 p-4 mb-4" style="border-radius: 12px;">
+        <h5 class="fw-bold mb-3 text-dark"><i class="bi bi-geo-alt me-2 text-primary"></i>Alamat Pengiriman</h5>
+        <h6 class="fw-bold mb-1 text-dark">{{ order.shipping_recipient_name }}</h6>
+        <p class="mb-1 text-muted small">{{ order.shipping_phone_number }}</p>
+        <p class="mb-0 text-muted small">{{ order.shipping_street_address }}, {{ order.shipping_city }}, {{ order.shipping_province }}, {{ order.shipping_postal_code }}</p>
+      </div>
+
+      <!-- 3. Ordered Items List -->
+      <div class="card shadow border-0 p-4" style="border-radius: 12px;">
+        <h5 class="fw-bold mb-3 text-dark"><i class="bi bi-box-seam me-2 text-primary"></i>Barang Pesanan</h5>
+        <div class="d-flex flex-column gap-3">
+          {% for item in items %}
+            <div class="d-flex justify-content-between align-items-center {% if not forloop.last %}border-bottom pb-3{% endif %}">
+              <div class="d-flex align-items-center">
+                <img src="{{ item.product.primary_image_url }}" alt="{{ item.product.name }}" class="rounded me-3" style="width: 60px; height: 60px; object-fit: cover;">
+                <div>
+                  <h6 class="fw-bold mb-1"><a href="{% url 'product_detail' item.product.slug %}" class="text-decoration-none text-dark">{{ item.product.name }}</a></h6>
+                  <small class="text-muted">{{ item.quantity }} x Rp {{ item.price|floatformat:0|intcomma }}</small>
+                </div>
+              </div>
+              <span class="fw-bold text-dark">Rp {{ item.subtotal|floatformat:0|intcomma }}</span>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Right: Pay, Cancel, and Totals Actions -->
+    <div class="col-lg-4">
+      <div class="card shadow border-0 p-4 mb-4" style="border-radius: 12px; position: sticky; top: 90px;">
+        <h5 class="fw-bold mb-3 text-dark">Aksi & Ringkasan</h5>
+        
+        <!-- Status Indicator -->
+        <div class="mb-4 text-center">
+          <span class="badge 
+            {% if order.status == 'PENDING' %}bg-warning text-dark
+            {% elif order.status == 'AWAITING_VERIFICATION' %}bg-info text-dark
+            {% elif order.status == 'PAID' %}bg-success
+            {% elif order.status == 'PROCESSING' %}bg-secondary
+            {% elif order.status == 'SHIPPED' %}bg-dark
+            {% elif order.status == 'COMPLETED' %}bg-primary-custom
+            {% else %}bg-danger{% endif %} text-white fs-6 py-2 px-3 w-100" style="border-radius: 8px;">
+            {{ order.get_status_display }}
+          </span>
+        </div>
+
+        <div class="d-flex justify-content-between mb-2">
+          <span class="text-muted small">Subtotal Barang</span>
+          <span class="fw-semibold text-dark small">Rp {{ order.total_amount|floatformat:0|intcomma }}</span>
+        </div>
+
+        <div class="d-flex justify-content-between mb-2">
+          <span class="text-muted small">Biaya Pengiriman</span>
+          <span class="fw-semibold text-dark small">Rp {{ order.shipping_cost|floatformat:0|intcomma }}</span>
+        </div>
+
+        <div class="d-flex justify-content-between mb-2">
+          <span class="text-muted small">Pajak (PPN 11%)</span>
+          <span class="fw-semibold text-dark small">Rp {{ order.tax_amount|floatformat:0|intcomma }}</span>
+        </div>
+
+        {% if order.discount_amount > 0 %}
+          <div class="d-flex justify-content-between text-danger mb-2">
+            <span class="small">Potongan Voucher</span>
+            <span class="fw-semibold small">-Rp {{ order.discount_amount|floatformat:0|intcomma }}</span>
+          </div>
+        {% endif %}
+
+        <hr class="text-secondary">
+
+        <div class="d-flex justify-content-between mb-2">
+          <span class="text-muted small">Total Belanja</span>
+          <span class="fw-semibold text-dark small">Rp {{ order.final_amount|floatformat:0|intcomma }}</span>
+        </div>
+
+        <div class="d-flex justify-content-between mb-4">
+          <span class="fw-bold text-dark">Nominal Transfer</span>
+          <span class="fw-bold text-primary fs-5">Rp {{ order.payment_amount|floatformat:0|intcomma }}</span>
+        </div>
+
+        <!-- Conditional User Action Buttons -->
+        <div class="d-flex flex-column gap-2">
+          {% if order.status == 'PENDING' %}
+            <a href="{% url 'process_payment' order.order_number %}" class="btn btn-primary-custom w-100 fw-bold">Bayar Sekarang</a>
+            
+            <form action="{% url 'order_cancel' order.order_number %}" method="POST" onsubmit="return confirm('Apakah Anda yakin ingin membatalkan pesanan ini?');">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-outline-danger w-100 fw-semibold">Batalkan Pesanan</button>
+            </form>
+          {% elif order.status == 'AWAITING_VERIFICATION' %}
+            <div class="alert alert-info small text-center mb-0">
+              <i class="bi bi-info-circle me-1"></i>Pembayaran Anda sedang diverifikasi oleh admin. Kami akan memproses pesanan Anda setelah status Lunas.
+            </div>
+          {% endif %}
+          
+          {% if order.status != 'PENDING' and order.status != 'AWAITING_VERIFICATION' and order.status != 'CANCELLED' %}
+            <a href="{% url 'download_invoice' order.order_number %}" class="btn btn-outline-primary w-100 fw-semibold">
+              <i class="bi bi-file-earmark-pdf me-2"></i>Download Invoice PDF
+            </a>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

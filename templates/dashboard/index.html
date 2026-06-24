@@ -1,0 +1,208 @@
+{% extends 'base.html' %}
+{% block title %}Admin Dashboard | ElectroShop{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+  
+  <!-- Admin Navigation Subbar -->
+  <div class="card border-0 bg-light p-3 mb-4" style="border-radius: 12px;">
+    <div class="d-flex flex-wrap gap-2 align-items-center">
+      <h5 class="fw-bold mb-0 text-primary me-3"><i class="bi bi-speedometer2 me-2"></i>Admin Area</h5>
+      <a href="{% url 'dashboard_index' %}" class="btn btn-primary btn-sm fw-semibold">Ringkasan</a>
+      <a href="{% url 'admin_product_list' %}" class="btn btn-outline-secondary btn-sm fw-semibold">Produk</a>
+      <a href="{% url 'admin_category_list' %}" class="btn btn-outline-secondary btn-sm fw-semibold">Kategori</a>
+      <a href="{% url 'admin_coupon_list' %}" class="btn btn-outline-secondary btn-sm fw-semibold">Kupon Voucher</a>
+      <a href="{% url 'admin_order_list' %}" class="btn btn-outline-secondary btn-sm fw-semibold">Pesanan</a>
+      <a href="{% url 'admin_user_list' %}" class="btn btn-outline-secondary btn-sm fw-semibold">User Pelanggan</a>
+      <a href="{% url 'admin_reports' %}" class="btn btn-outline-secondary btn-sm fw-semibold">Laporan Ekspor</a>
+    </div>
+  </div>
+
+  <!-- Stats Grid -->
+  <div class="row g-3 mb-4">
+    <!-- Stat 1: Revenue -->
+    <div class="col-md-3">
+      <div class="card bg-primary text-white dashboard-stat-card p-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <span class="small uppercase fw-bold" style="letter-spacing: 1px;">Total Pendapatan</span>
+          <i class="bi bi-wallet2 fs-3"></i>
+        </div>
+        <h3 class="fw-bold">Rp {{ total_revenue|floatformat:0 }}</h3>
+        <small class="text-white-50">Dari transaksi pembayaran sukses</small>
+      </div>
+    </div>
+    
+    <!-- Stat 2: Orders -->
+    <div class="col-md-3">
+      <div class="card bg-success text-white dashboard-stat-card p-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <span class="small uppercase fw-bold" style="letter-spacing: 1px;">Total Pesanan</span>
+          <i class="bi bi-bag-check fs-3"></i>
+        </div>
+        <h3 class="fw-bold">{{ total_orders }}</h3>
+        <small class="text-white-50">Seluruh status transaksi</small>
+      </div>
+    </div>
+
+    <!-- Stat 3: Products -->
+    <div class="col-md-3">
+      <div class="card bg-warning text-white dashboard-stat-card p-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <span class="small uppercase fw-bold" style="letter-spacing: 1px;">Total Produk</span>
+          <i class="bi bi-cpu fs-3"></i>
+        </div>
+        <h3 class="fw-bold">{{ total_products }}</h3>
+        <small class="text-white-50">Jumlah item terdaftar</small>
+      </div>
+    </div>
+
+    <!-- Stat 4: Customers -->
+    <div class="col-md-3">
+      <div class="card bg-danger text-white dashboard-stat-card p-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <span class="small uppercase fw-bold" style="letter-spacing: 1px;">Pelanggan Aktif</span>
+          <i class="bi bi-people fs-3"></i>
+        </div>
+        <h3 class="fw-bold">{{ total_customers }}</h3>
+        <small class="text-white-50">Role customer terdaftar</small>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-4">
+    <!-- Chart.js Graph -->
+    <div class="col-lg-8">
+      <div class="card shadow border-0 p-4" style="border-radius: 12px; height: 100%;">
+        <h5 class="fw-bold mb-4 text-dark"><i class="bi bi-graph-up-arrow text-primary me-2"></i>Tren Penjualan Bulanan</h5>
+        <canvas id="salesChart" style="max-height: 300px;"></canvas>
+      </div>
+    </div>
+    
+    <!-- Best Sellers Table -->
+    <div class="col-lg-4">
+      <div class="card shadow border-0 p-4" style="border-radius: 12px; height: 100%;">
+        <h5 class="fw-bold mb-3 text-dark"><i class="bi bi-trophy text-warning me-2"></i>Produk Terlaris</h5>
+        
+        {% if best_sellers %}
+          <div class="table-responsive">
+            <table class="table align-middle">
+              <thead>
+                <tr class="text-muted small">
+                  <th>Produk</th>
+                  <th class="text-end">Terjual</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for item in best_sellers %}
+                  <tr>
+                    <td>
+                      <span class="fw-bold text-dark d-block text-truncate" style="max-width: 180px;">{{ item.product__name }}</span>
+                      <small class="text-muted text-uppercase" style="font-size: 0.75rem;">SKU: {{ item.product__sku }}</small>
+                    </td>
+                    <td class="text-end fw-bold text-success">{{ item.total_sold }} Unit</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <p class="text-muted small">Data penjualan produk belum tersedia.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Recent Orders Table -->
+  <div class="card shadow border-0 p-4 mt-4" style="border-radius: 12px;">
+    <h5 class="fw-bold mb-3 text-dark"><i class="bi bi-clock-history text-primary me-2"></i>Pesanan Terbaru</h5>
+    
+    {% if recent_orders %}
+      <div class="table-responsive">
+        <table class="table align-middle">
+          <thead>
+            <tr class="text-muted">
+              <th>Nomor Order</th>
+              <th>Pelanggan</th>
+              <th>Total</th>
+              <th>Status</th>
+              <th>Tanggal</th>
+              <th>Aksi</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for o in recent_orders %}
+              <tr>
+                <td class="fw-bold text-dark">{{ o.order_number }}</td>
+                <td>{{ o.user.email }}</td>
+                <td class="fw-bold text-primary">Rp {{ o.final_amount|floatformat:0 }}</td>
+                <td>
+                  <span class="badge 
+                    {% if o.status == 'PENDING' %}bg-warning
+                    {% elif o.status == 'PAID' %}bg-primary
+                    {% elif o.status == 'SHIPPED' %}bg-info
+                    {% elif o.status == 'COMPLETED' %}bg-success
+                    {% else %}bg-danger{% endif %} text-white">
+                    {{ o.get_status_display }}
+                  </span>
+                </td>
+                <td class="text-muted small">{{ o.created_at|date:"d M Y H:i" }}</td>
+                <td>
+                  <a href="{% url 'admin_order_detail' o.id %}" class="btn btn-outline-primary btn-sm fw-semibold">Kelola</a>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <p class="text-muted small">Belum ada pesanan masuk.</p>
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Chart.js CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const ctx = document.getElementById('salesChart');
+  if (ctx) {
+    new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: {{ chart_labels|safe }},
+        datasets: [{
+          label: 'Pendapatan Bersih (Rp)',
+          data: {{ chart_data }},
+          borderColor: '#00b0ff',
+          backgroundColor: 'rgba(0, 176, 255, 0.1)',
+          fill: true,
+          tension: 0.3,
+          borderWidth: 3
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: {
+            display: false
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: {
+              callback: function(value) {
+                return 'Rp ' + value.toLocaleString('id-ID');
+              }
+            }
+          }
+        }
+      }
+    });
+  }
+});
+</script>
+{% endblock %}

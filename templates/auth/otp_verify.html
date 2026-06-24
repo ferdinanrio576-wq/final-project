@@ -1,0 +1,145 @@
+{% extends 'base.html' %}
+{% block title %}Verifikasi OTP | ElectroShop{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+  <div class="row justify-content-center">
+    <div class="col-md-6 col-lg-5">
+      <div class="card shadow border-0 p-4" style="border-radius: 16px;">
+        
+        <!-- Header -->
+        <div class="text-center mb-4">
+          <div class="d-inline-flex align-items-center justify-content-center rounded-circle bg-primary bg-opacity-10 mb-3" style="width: 70px; height: 70px;">
+            <i class="bi bi-shield-lock-fill text-primary" style="font-size: 32px;"></i>
+          </div>
+          <h4 class="fw-bold mb-1">Verifikasi Email</h4>
+          <p class="text-muted small mb-0">Masukkan kode OTP 6 digit yang telah dikirim ke</p>
+          <p class="fw-semibold text-primary small">{{ masked_email }}</p>
+        </div>
+
+        <!-- OTP Form -->
+        <form method="POST" action="{% url 'otp_verify' %}" id="otp-form">
+          {% csrf_token %}
+          
+          <div class="d-flex justify-content-center gap-2 mb-4" id="otp-inputs">
+            <input type="text" name="otp_1" maxlength="1" class="form-control text-center fw-bold otp-input" 
+                   style="width: 52px; height: 58px; font-size: 1.5rem; border-radius: 12px; border: 2px solid #dee2e6;"
+                   inputmode="numeric" pattern="[0-9]" autocomplete="one-time-code" autofocus>
+            <input type="text" name="otp_2" maxlength="1" class="form-control text-center fw-bold otp-input" 
+                   style="width: 52px; height: 58px; font-size: 1.5rem; border-radius: 12px; border: 2px solid #dee2e6;"
+                   inputmode="numeric" pattern="[0-9]">
+            <input type="text" name="otp_3" maxlength="1" class="form-control text-center fw-bold otp-input" 
+                   style="width: 52px; height: 58px; font-size: 1.5rem; border-radius: 12px; border: 2px solid #dee2e6;"
+                   inputmode="numeric" pattern="[0-9]">
+            <input type="text" name="otp_4" maxlength="1" class="form-control text-center fw-bold otp-input" 
+                   style="width: 52px; height: 58px; font-size: 1.5rem; border-radius: 12px; border: 2px solid #dee2e6;"
+                   inputmode="numeric" pattern="[0-9]">
+            <input type="text" name="otp_5" maxlength="1" class="form-control text-center fw-bold otp-input" 
+                   style="width: 52px; height: 58px; font-size: 1.5rem; border-radius: 12px; border: 2px solid #dee2e6;"
+                   inputmode="numeric" pattern="[0-9]">
+            <input type="text" name="otp_6" maxlength="1" class="form-control text-center fw-bold otp-input" 
+                   style="width: 52px; height: 58px; font-size: 1.5rem; border-radius: 12px; border: 2px solid #dee2e6;"
+                   inputmode="numeric" pattern="[0-9]">
+          </div>
+
+          <button type="submit" class="btn btn-primary-custom w-100 py-2 fw-bold mb-3" id="btn-verify">
+            <i class="bi bi-check-circle me-2"></i>Verifikasi
+          </button>
+        </form>
+
+        <!-- Resend OTP -->
+        <div class="text-center">
+          <p class="text-muted small mb-2">Tidak menerima kode?</p>
+          <form method="POST" action="{% url 'resend_otp' %}" id="resend-form" class="d-inline">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-link text-primary fw-semibold small p-0" id="btn-resend" disabled>
+              Kirim Ulang OTP (<span id="countdown">60</span>s)
+            </button>
+          </form>
+        </div>
+
+        <hr class="my-3">
+        <div class="text-center">
+          <small class="text-muted">
+            <i class="bi bi-info-circle me-1"></i>Kode berlaku selama 10 menit. Periksa juga folder spam/junk.
+          </small>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const inputs = document.querySelectorAll('.otp-input');
+  
+  // Auto-focus next input on type
+  inputs.forEach((input, index) => {
+    input.addEventListener('input', (e) => {
+      const val = e.target.value;
+      // Only allow digits
+      if (!/^\d$/.test(val)) {
+        e.target.value = '';
+        return;
+      }
+      // Focus next input
+      if (val && index < inputs.length - 1) {
+        inputs[index + 1].focus();
+      }
+      // Auto-submit when all filled
+      const allFilled = Array.from(inputs).every(inp => inp.value.length === 1);
+      if (allFilled) {
+        document.getElementById('btn-verify').focus();
+      }
+    });
+
+    // Handle backspace
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Backspace' && !e.target.value && index > 0) {
+        inputs[index - 1].focus();
+        inputs[index - 1].value = '';
+      }
+    });
+
+    // Handle paste
+    input.addEventListener('paste', (e) => {
+      e.preventDefault();
+      const pastedData = (e.clipboardData || window.clipboardData).getData('text').trim();
+      if (/^\d{6}$/.test(pastedData)) {
+        pastedData.split('').forEach((digit, i) => {
+          if (inputs[i]) inputs[i].value = digit;
+        });
+        inputs[inputs.length - 1].focus();
+      }
+    });
+
+    // Visual feedback on focus
+    input.addEventListener('focus', () => {
+      input.style.borderColor = '#4f46e5';
+      input.style.boxShadow = '0 0 0 3px rgba(79, 70, 229, 0.15)';
+    });
+    input.addEventListener('blur', () => {
+      input.style.borderColor = '#dee2e6';
+      input.style.boxShadow = 'none';
+    });
+  });
+
+  // Countdown timer for resend button
+  let countdown = 60;
+  const countdownEl = document.getElementById('countdown');
+  const btnResend = document.getElementById('btn-resend');
+  
+  const timer = setInterval(() => {
+    countdown--;
+    countdownEl.textContent = countdown;
+    if (countdown <= 0) {
+      clearInterval(timer);
+      btnResend.disabled = false;
+      btnResend.innerHTML = '<i class="bi bi-arrow-repeat me-1"></i>Kirim Ulang OTP';
+    }
+  }, 1000);
+});
+</script>
+{% endblock %}

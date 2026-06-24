@@ -1,0 +1,89 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% block title %}Pesanan Saya | ElectroShop{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+  <div class="row">
+    <!-- Left Menu Bar -->
+    <div class="col-md-3 mb-4">
+      <div class="card shadow border-0 p-3" style="border-radius: 12px;">
+        <div class="text-center py-3">
+          {% if user.profile.avatar %}
+            <img src="{{ user.profile.avatar.url }}" alt="Avatar" class="rounded-circle mb-3 img-thumbnail" style="width: 100px; height: 100px; object-fit: cover;">
+          {% else %}
+            <i class="bi bi-person-circle text-primary" style="font-size: 80px;"></i>
+          {% endif %}
+          <h5 class="fw-bold mb-0">{{ user.username }}</h5>
+          <small class="text-muted">{{ user.email }}</small>
+        </div>
+        <hr>
+        <div class="list-group list-group-flush">
+          <a href="{% url 'profile' %}" class="list-group-item list-group-item-action border-0 py-2.5 rounded"><i class="bi bi-person me-2"></i>Profil</a>
+          <a href="{% url 'address_list' %}" class="list-group-item list-group-item-action border-0 py-2.5 rounded"><i class="bi bi-geo-alt me-2"></i>Daftar Alamat</a>
+          <a href="{% url 'order_history' %}" class="list-group-item list-group-item-action active border-0 py-2.5 rounded"><i class="bi bi-bag-check me-2"></i>Pesanan Saya</a>
+          <a href="{% url 'wishlist_list' %}" class="list-group-item list-group-item-action border-0 py-2.5 rounded"><i class="bi bi-heart me-2"></i>Wishlist</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Content Panel -->
+    <div class="col-md-9">
+      <div class="card shadow border-0 p-4" style="border-radius: 12px;">
+        <h4 class="fw-bold mb-4">Daftar Pesanan Saya</h4>
+        
+        {% if orders %}
+          <div class="row g-3">
+            {% for order in orders %}
+              <div class="col-12">
+                <div class="card border p-3" style="border-radius: 10px;">
+                  <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div>
+                      <small class="text-muted">Tanggal: {{ order.created_at|date:"d M Y H:i" }}</small>
+                      <h6 class="fw-bold text-dark mb-0 mt-1">{{ order.order_number }}</h6>
+                    </div>
+                    <div>
+                      <span class="badge 
+                        {% if order.status == 'PENDING' %}bg-warning text-dark
+                        {% elif order.status == 'AWAITING_VERIFICATION' %}bg-info text-dark
+                        {% elif order.status == 'PAID' %}bg-success
+                        {% elif order.status == 'PROCESSING' %}bg-secondary
+                        {% elif order.status == 'SHIPPED' %}bg-dark
+                        {% elif order.status == 'COMPLETED' %}bg-primary-custom
+                        {% else %}bg-danger{% endif %} text-white badge-custom">
+                        {{ order.get_status_display }}
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <hr class="my-2 text-secondary">
+                  
+                  <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                      <small class="text-muted">Total Belanja</small>
+                      <h6 class="fw-bold text-primary mb-0">Rp {{ order.final_amount|floatformat:0|intcomma }}</h6>
+                    </div>
+                    <div>
+                      <a href="{% url 'order_detail' order.order_number %}" class="btn btn-outline-primary btn-sm fw-bold">Detail Pesanan</a>
+                      {% if order.status == 'PENDING' %}
+                        <a href="{% url 'process_payment' order.order_number %}" class="btn btn-primary-custom btn-sm fw-bold ms-1">Bayar Sekarang</a>
+                      {% endif %}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="empty-state text-center py-5">
+            <i class="bi bi-bag-x text-muted" style="font-size: 50px;"></i>
+            <h5 class="fw-bold mt-3">Belum ada Transaksi</h5>
+            <p class="text-muted">Mulai berbelanja perangkat elektronik berkualitas di katalog kami.</p>
+            <a href="{% url 'product_list' %}" class="btn btn-primary-custom mt-2">Cari Produk</a>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

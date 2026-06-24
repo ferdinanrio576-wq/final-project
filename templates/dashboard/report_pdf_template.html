@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>{{ title }}</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      color: #333333;
+      padding: 10px;
+    }
+    .report-header {
+      border-bottom: 2px solid #00b0ff;
+      padding-bottom: 10px;
+      margin-bottom: 25px;
+    }
+    .report-title {
+      font-size: 22px;
+      font-weight: bold;
+      color: #00b0ff;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 15px;
+    }
+    th, td {
+      padding: 8px;
+      text-align: left;
+      font-size: 11px;
+      border-bottom: 1px solid #dddddd;
+    }
+    th {
+      background-color: #f2f2f2;
+      font-weight: bold;
+      color: #333;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Report Header -->
+  <div class="report-header">
+    <table style="width: 100%;">
+      <tr>
+        <td style="border: none; padding: 0;">
+          <span class="report-title">LAPORAN DATA SISTEM</span><br>
+          <strong style="font-size: 14px; color: #555;">{{ title }}</strong>
+        </td>
+        <td style="border: none; padding: 0; text-align: right; font-size: 11px; color: #666;">
+          Tanggal Cetak: {{ date|date:"d M Y H:i" }} WIB<br>
+          Penerbit: Sistem Admin ElectroShop
+        </td>
+      </tr>
+    </table>
+  </div>
+
+  <!-- Report Table -->
+  <table>
+    <thead>
+      <tr>
+        {% for header in headers %}
+          <th>{{ header }}</th>
+        {% endfor %}
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in rows %}
+        <tr>
+          {% for val in row %}
+            <td>{{ val }}</td>
+          {% endfor %}
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <!-- Report Footer -->
+  <div style="margin-top: 40px; text-align: center; font-size: 10px; color: #888888; border-top: 1px solid #eeeeee; padding-top: 10px;">
+    Laporan ini dicetak secara otomatis dari database ElectroShop. Hak cipta milik administrasi ElectroShop.
+  </div>
+
+</body>
+</html>

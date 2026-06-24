@@ -1,0 +1,197 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}ElectroShop | Toko Elektronik Terlengkap{% endblock %}</title>
+  
+  <!-- Google Fonts (Outfit) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Bootstrap 5 CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Bootstrap Icons -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+  
+  <!-- Custom Styling -->
+  <link rel="stylesheet" href="{% static 'css/style.css' %}">
+  {% block extra_css %}{% endblock %}
+</head>
+<body>
+
+  <!-- Toast Container -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- Header / Navigation Bar -->
+  <nav class="navbar navbar-expand-lg navbar-custom">
+    <div class="container">
+      <a class="navbar-brand fw-bold text-primary fs-3 d-flex align-items-center" href="{% url 'product_list' %}">
+        <i class="bi bi-cpu-fill me-2"></i>ElectroShop
+      </a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent" aria-controls="navbarContent" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      
+      <div class="collapse navbar-collapse" id="navbarContent">
+        <!-- Search Form -->
+        <form class="d-flex mx-auto w-50" action="{% url 'product_list' %}" method="GET">
+          <div class="input-group">
+            <input class="form-control" type="search" placeholder="Cari gadget, laptop, komponen..." aria-label="Search" name="search" value="{{ search_query|default:'' }}">
+            <button class="btn btn-primary-custom" type="submit">
+              <i class="bi bi-search"></i>
+            </button>
+          </div>
+        </form>
+
+        <ul class="navbar-nav ms-auto align-items-center">
+          <!-- Dark Mode Toggle Button -->
+          <li class="nav-item me-3">
+            <button class="btn btn-link nav-link p-2" id="dark-mode-toggle" aria-label="Toggle dark mode">
+              <i class="bi bi-moon-fill"></i>
+            </button>
+          </li>
+
+          <!-- Categories dropdown -->
+          <li class="nav-item dropdown me-3">
+            <a class="nav-link dropdown-toggle fw-semibold" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+              Kategori
+            </a>
+            <ul class="dropdown-menu">
+              {% for cat in global_categories %}
+                <li><a class="dropdown-menu-item dropdown-item" href="{% url 'product_list' %}?category={{ cat.slug }}">{{ cat.name }}</a></li>
+              {% empty %}
+                <li><a class="dropdown-item disabled" href="#">Tidak ada kategori</a></li>
+              {% endfor %}
+            </ul>
+          </li>
+
+          <!-- Shopping Cart Icon with Badge -->
+          <li class="nav-item me-3 position-relative">
+            <a class="nav-link fs-4" href="{% url 'cart_detail' %}" aria-label="View shopping cart">
+              <i class="bi bi-cart3"></i>
+              <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger cart-badge {% if not cart_count %}d-none{% endif %}" style="font-size: 0.65rem;">
+                {{ cart_count|default:0 }}
+              </span>
+            </a>
+          </li>
+
+          <!-- Wishlist link -->
+          {% if user.is_authenticated %}
+            <li class="nav-item me-3">
+              <a class="nav-link fs-4" href="{% url 'wishlist_list' %}" title="Wishlist" aria-label="View wishlist">
+                <i class="bi bi-heart"></i>
+              </a>
+            </li>
+          {% endif %}
+
+          <!-- Profile / Authentication -->
+          {% if user.is_authenticated %}
+            <li class="nav-item dropdown">
+              <a class="nav-link dropdown-toggle fw-semibold d-flex align-items-center" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                {% if user.profile.avatar %}
+                  <img src="{{ user.profile.avatar.url }}" alt="avatar" class="rounded-circle me-2" style="width: 30px; height: 30px; object-fit: cover;">
+                {% else %}
+                  <i class="bi bi-person-circle fs-5 me-2"></i>
+                {% endif %}
+                {{ user.username }}
+              </a>
+              <ul class="dropdown-menu dropdown-menu-end">
+                {% if user.is_admin_user %}
+                  <li><a class="dropdown-item fw-bold text-primary" href="{% url 'dashboard_index' %}"><i class="bi bi-speedometer2 me-2"></i>Admin Dashboard</a></li>
+                  <li><hr class="dropdown-divider"></li>
+                {% endif %}
+                <li><a class="dropdown-item" href="{% url 'profile' %}"><i class="bi bi-person me-2"></i>Profil Saya</a></li>
+                <li><a class="dropdown-item" href="{% url 'address_list' %}"><i class="bi bi-geo-alt me-2"></i>Alamat Saya</a></li>
+                <li><a class="dropdown-item" href="{% url 'order_history' %}"><i class="bi bi-bag-check me-2"></i>Pesanan Saya</a></li>
+                <li><hr class="dropdown-divider"></li>
+                <li><a class="dropdown-item text-danger" href="{% url 'logout' %}"><i class="bi bi-box-arrow-right me-2"></i>Keluar</a></li>
+              </ul>
+            </li>
+          {% else %}
+            <li class="nav-item">
+              <a class="btn btn-outline-primary me-2" href="{% url 'login' %}">Masuk</a>
+            </li>
+            <li class="nav-item">
+              <a class="btn btn-primary-custom" href="{% url 'register' %}">Daftar</a>
+            </li>
+          {% endif %}
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Messages notifications (Django messages) -->
+  {% if messages %}
+    <div class="container mt-3">
+      {% for message in messages %}
+        <div class="alert alert-{% if message.tags == 'error' %}danger{% elif message.tags == 'warning' %}warning{% else %}success{% endif %} alert-dismissible fade show" role="alert">
+          {{ message }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  <!-- Core Content Block -->
+  <main class="py-4">
+    {% block content %}{% endblock %}
+  </main>
+
+  <!-- Footer -->
+  <footer class="bg-dark text-white pt-5 pb-4 mt-5 border-top border-secondary">
+    <div class="container text-center text-md-left">
+      <div class="row text-center text-md-left">
+        <div class="col-md-3 col-lg-3 col-xl-3 mx-auto mt-3">
+          <h5 class="text-uppercase mb-4 font-weight-bold text-warning d-flex align-items-center justify-content-center justify-content-md-start">
+            <i class="bi bi-cpu-fill me-2"></i>ElectroShop
+          </h5>
+          <p class="text-muted text-start" style="font-size: 0.9rem;">Toko e-commerce industri elektronik terpercaya. Menyediakan laptop, smartphone, komponen, IoT, dan aksesoris bergaransi resmi.</p>
+        </div>
+        
+        <div class="col-md-2 col-lg-2 col-xl-2 mx-auto mt-3 text-start">
+          <h5 class="text-uppercase mb-4 font-weight-bold text-warning">Layanan</h5>
+          <p><a href="{% url 'product_list' %}" class="text-white text-decoration-none text-muted-hover" style="font-size: 0.9rem;">Katalog Produk</a></p>
+          <p><a href="{% url 'cart_detail' %}" class="text-white text-decoration-none text-muted-hover" style="font-size: 0.9rem;">Keranjang Belanja</a></p>
+          <p><a href="{% url 'order_history' %}" class="text-white text-decoration-none text-muted-hover" style="font-size: 0.9rem;">Lacak Pesanan</a></p>
+        </div>
+
+        <div class="col-md-3 col-lg-2 col-xl-2 mx-auto mt-3 text-start">
+          <h5 class="text-uppercase mb-4 font-weight-bold text-warning">Bantuan</h5>
+          <p><a href="#" class="text-white text-decoration-none text-muted-hover" style="font-size: 0.9rem;">Kebijakan Garansi</a></p>
+          <p><a href="#" class="text-white text-decoration-none text-muted-hover" style="font-size: 0.9rem;">Syarat & Ketentuan</a></p>
+          <p><a href="#" class="text-white text-decoration-none text-muted-hover" style="font-size: 0.9rem;">Kontak Hubungi Kami</a></p>
+        </div>
+
+        <div class="col-md-4 col-lg-3 col-xl-3 mx-auto mt-3 text-start">
+          <h5 class="text-uppercase mb-4 font-weight-bold text-warning">Kontak</h5>
+          <p style="font-size: 0.9rem;" class="text-muted"><i class="bi bi-house me-3"></i>Jl. Elektronik Raya No. 42, Jakarta</p>
+          <p style="font-size: 0.9rem;" class="text-muted"><i class="bi bi-envelope me-3"></i>support@electroshop.com</p>
+          <p style="font-size: 0.9rem;" class="text-muted"><i class="bi bi-phone me-3"></i>+62 812 3456 7890</p>
+        </div>
+      </div>
+
+      <hr class="mb-4 text-secondary">
+      <div class="row align-items-center">
+        <div class="col-md-7 col-lg-8">
+          <p class="text-muted text-start" style="font-size: 0.85rem;">© 2026 ElectroShop. Seluruh hak cipta dilindungi. Proyek UAS Pemrograman E-Commerce.</p>
+        </div>
+        <div class="col-md-5 col-lg-4 text-md-end text-center">
+          <a href="#" class="text-white me-3 fs-5" aria-label="Facebook"><i class="bi bi-facebook"></i></a>
+          <a href="#" class="text-white me-3 fs-5" aria-label="Twitter"><i class="bi bi-twitter"></i></a>
+          <a href="#" class="text-white me-3 fs-5" aria-label="Instagram"><i class="bi bi-instagram"></i></a>
+          <a href="#" class="text-white fs-5" aria-label="Linkedin"><i class="bi bi-linkedin"></i></a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Bootstrap 5 Bundle with Popper -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <!-- Global JavaScript -->
+  <script src="{% static 'js/app.js' %}"></script>
+  {% block extra_js %}{% endblock %}
+</body>
+</html>

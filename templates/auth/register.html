@@ -1,0 +1,60 @@
+{% extends 'base.html' %}
+{% block title %}Daftar Akun | ElectroShop{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+  <div class="row justify-content-center">
+    <div class="col-md-6">
+      <div class="card shadow border-0 p-4" style="border-radius: 16px;">
+        <div class="card-body">
+          <h3 class="card-title fw-bold text-center mb-4">Daftar Akun Baru</h3>
+          
+          <form method="POST" action="{% url 'register' %}">
+            {% csrf_token %}
+            
+            <div class="mb-3">
+              <label for="reg-username" class="form-label fw-semibold">Username</label>
+              {{ form.username }}
+              {% if form.username.errors %}
+                <div class="text-danger small mt-1">{{ form.username.errors.0 }}</div>
+              {% endif %}
+            </div>
+            
+            <div class="mb-3">
+              <label for="reg-email" class="form-label fw-semibold">Email</label>
+              {{ form.email }}
+              {% if form.email.errors %}
+                <div class="text-danger small mt-1">{{ form.email.errors.0 }}</div>
+              {% endif %}
+            </div>
+            
+            <div class="row mb-3">
+              <div class="col-md-6 mb-3 mb-md-0">
+                <label for="reg-password" class="form-label fw-semibold">Kata Sandi</label>
+                {{ form.password }}
+                {% if form.password.errors %}
+                  <div class="text-danger small mt-1">{{ form.password.errors.0 }}</div>
+                {% endif %}
+              </div>
+              <div class="col-md-6">
+                <label for="reg-confirm-password" class="form-label fw-semibold">Konfirmasi Sandi</label>
+                {{ form.confirm_password }}
+                {% if form.confirm_password.errors %}
+                  <div class="text-danger small mt-1">{{ form.confirm_password.errors.0 }}</div>
+                {% endif %}
+              </div>
+            </div>
+            
+            <button type="submit" class="btn btn-primary-custom w-100 py-2.5 fw-bold mb-3">Daftar</button>
+          </form>
+          
+          <div class="text-center mt-3">
+            <span class="text-muted">Sudah punya akun?</span>
+            <a href="{% url 'login' %}" class="text-decoration-none fw-semibold text-primary ms-1">Masuk</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
