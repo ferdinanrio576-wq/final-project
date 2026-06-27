@@ -295,7 +295,8 @@ class DownloadInvoiceView(LoginRequiredMixin, View):
     def get(self, request, order_number):
         order = get_object_or_404(Order, order_number=order_number, user=request.user)
         if not hasattr(order, 'invoice') or not order.invoice.pdf_file:
-            raise Http404("Invoice belum tersedia.")
+            messages.warning(request, "Invoice belum tersedia. Pembayaran harus diverifikasi terlebih dahulu oleh admin.")
+            return redirect('order_detail', order_number=order.order_number)
         response = FileResponse(order.invoice.pdf_file.open('rb'), content_type='application/pdf')
         response['Content-Disposition'] = f'attachment; filename="Invoice-{order.order_number}.pdf"'
         return response
