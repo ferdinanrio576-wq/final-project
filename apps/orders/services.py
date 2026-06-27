@@ -1,4 +1,5 @@
 import time
+import math
 from decimal import Decimal
 
 from .repositories import CartRepository, OrderRepository, WishlistRepository
@@ -8,39 +9,86 @@ from users.models import Address
 from coupons.models import Coupon
 from django.db import OperationalError, transaction
 
+# Titik Penjual (Purwokerto)
+PURWOKERTO_LAT = -7.424494
+PURWOKERTO_LNG = 109.230154
+
 # ─── Tarif Pengiriman Per Kurir & Paket ────────────────────────────────────────
-# Format: { 'KURIR': { 'PAKET': {'label': ..., 'rate_per_kg': ..., 'estimate': ...} } }
+# Format: { 'KURIR': { 'PAKET': {'label': ..., 'base_rate_per_kg': ..., 'rate_per_km_per_kg': ..., 'estimate': ...} } }
 SHIPPING_PACKAGES = {
     'JNE': {
-        'REG': {'label': 'REG (Reguler)', 'rate_per_kg': 9000, 'estimate': '2-5 hari kerja'},
-        'YES': {'label': 'YES (Yakin Esok Sampai)', 'rate_per_kg': 22000, 'estimate': '1 hari kerja'},
-        'OKE': {'label': 'OKE (Ongkos Kirim Ekonomis)', 'rate_per_kg': 7000, 'estimate': '5-7 hari kerja'},
+        'REG': {'label': 'REG (Reguler)', 'rate_per_kg': 9000, 'base_rate_per_kg': 9000, 'rate_per_km_per_kg': 200, 'estimate': '2-5 hari kerja'},
+        'YES': {'label': 'YES (Yakin Esok Sampai)', 'rate_per_kg': 22000, 'base_rate_per_kg': 22000, 'rate_per_km_per_kg': 400, 'estimate': '1 hari kerja'},
+        'OKE': {'label': 'OKE (Ongkos Kirim Ekonomis)', 'rate_per_kg': 7000, 'base_rate_per_kg': 7000, 'rate_per_km_per_kg': 150, 'estimate': '5-7 hari kerja'},
     },
     'TIKI': {
-        'REG': {'label': 'REG (Regular)', 'rate_per_kg': 10000, 'estimate': '2-4 hari kerja'},
-        'ONS': {'label': 'ONS (Over Night Service)', 'rate_per_kg': 25000, 'estimate': '1 hari kerja'},
-        'ECO': {'label': 'ECO (Economy)', 'rate_per_kg': 8000, 'estimate': '5-8 hari kerja'},
+        'REG': {'label': 'REG (Regular)', 'rate_per_kg': 10000, 'base_rate_per_kg': 10000, 'rate_per_km_per_kg': 220, 'estimate': '2-4 hari kerja'},
+        'ONS': {'label': 'ONS (Over Night Service)', 'rate_per_kg': 25000, 'base_rate_per_kg': 25000, 'rate_per_km_per_kg': 450, 'estimate': '1 hari kerja'},
+        'ECO': {'label': 'ECO (Economy)', 'rate_per_kg': 8000, 'base_rate_per_kg': 8000, 'rate_per_km_per_kg': 160, 'estimate': '5-8 hari kerja'},
     },
     'POS': {
-        'BIASA': {'label': 'Paket Biasa', 'rate_per_kg': 8000, 'estimate': '3-7 hari kerja'},
-        'KILAT': {'label': 'Paket Kilat', 'rate_per_kg': 18000, 'estimate': '1-2 hari kerja'},
+        'BIASA': {'label': 'Paket Biasa', 'rate_per_kg': 8000, 'base_rate_per_kg': 8000, 'rate_per_km_per_kg': 140, 'estimate': '3-7 hari kerja'},
+        'KILAT': {'label': 'Paket Kilat', 'rate_per_kg': 18000, 'base_rate_per_kg': 18000, 'rate_per_km_per_kg': 350, 'estimate': '1-2 hari kerja'},
     },
 }
 
 
-def calculate_shipping_cost(courier: str, service: str, total_weight_grams: int) -> int:
-    """Hitung ongkir berdasarkan kurir, paket, dan berat total (dalam gram)."""
+def calculate_shipping_cost(courier: str, service: str, total_weight_grams: int, destination_province: str = None, latitude=None, longitude=None) -> int:
+    """Hitung ongkir berdasarkan kurir, paket, berat total (dalam gram), dan jarak dari Purwokerto."""
     courier_data = SHIPPING_PACKAGES.get(courier.upper(), {})
     service_data = courier_data.get(service.upper(), None)
 
     if not service_data:
-        # Fallback: rate default Rp 15.000/kg
-        rate = 15000
+        # Fallback: base rate default Rp 9.000/kg, rate per km Rp 200/kg
+        base_rate = 9000
+        rate_per_km = 200
     else:
-        rate = service_data['rate_per_kg']
+        base_rate = service_data.get('base_rate_per_kg', service_data.get('rate_per_kg', 9000))
+        rate_per_km = service_data.get('rate_per_km_per_kg', 200)
 
+    # Hitung Jarak (km) dari Purwokerto menggunakan formula Haversine
+    distance_km = None
+    if latitude is not None and longitude is not None:
+        try:
+            lat1 = float(PURWOKERTO_LAT)
+            lon1 = float(PURWOKERTO_LNG)
+            lat2 = float(latitude)
+            lon2 = float(longitude)
+            
+            dlat = math.radians(lat2 - lat1)
+            dlon = math.radians(lon2 - lon1)
+            a = math.sin(dlat / 2.0)**2 + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(dlon / 2.0)**2
+            c = 2.0 * math.atan2(math.sqrt(a), math.sqrt(1.0 - a))
+            distance_km = 6371.0 * c
+        except (ValueError, TypeError):
+            pass
+
+    # Fallback jarak berdasarkan nama provinsi jika koordinat kosong/gagal dihitung
+    if distance_km is None:
+        if destination_province:
+            norm = destination_province.strip().lower()
+            if 'tengah' in norm or 'yogyakarta' in norm or 'diy' in norm:
+                distance_km = 100.0  # Jawa Tengah / DIY
+            elif 'barat' in norm or 'banten' in norm:
+                distance_km = 250.0  # Jawa Barat / Banten
+            elif 'jakarta' in norm or 'dki' in norm:
+                distance_km = 350.0  # DKI Jakarta
+            elif 'timur' in norm:
+                distance_km = 400.0  # Jawa Timur
+            else:
+                distance_km = 1200.0 # Luar Jawa
+        else:
+            distance_km = 10.0  # Jarak lokal default
+
+    # Rumus Ongkir: (Base Rate + Jarak * Rate per km) * Berat dalam kg (min 1 kg)
     weight_kg = max(1.0, total_weight_grams / 1000.0)
-    return round(weight_kg * rate)
+    cost_per_kg = base_rate + (rate_per_km * distance_km)
+    total_cost = round(cost_per_kg * weight_kg)
+    
+    # Bulatkan ke kelipatan Rp 500 terdekat
+    total_cost = round(total_cost / 500.0) * 500
+    
+    return int(max(5000, total_cost)) # Minimum ongkir Rp 5.000
 
 
 class CartService:
@@ -122,7 +170,7 @@ class OrderService:
     @transaction.atomic
     def checkout(
         self, user, cart: Cart, address: Address, courier: str,
-        coupon_code: str = None, shipping_service: str = None
+        coupon_code: str = None, shipping_service: str = None, destination_province: str = None
     ) -> Order:
         if cart.items.count() == 0:
             raise ValueError("Keranjang belanja kosong.")
@@ -147,7 +195,14 @@ class OrderService:
             # Ambil paket pertama yang tersedia
             service_upper = list(courier_packages.keys())[0] if courier_packages else 'REG'
 
-        shipping_cost = calculate_shipping_cost(courier_upper, service_upper, total_weight)
+        shipping_cost = calculate_shipping_cost(
+            courier=courier_upper,
+            service=service_upper,
+            total_weight_grams=total_weight,
+            destination_province=destination_province,
+            latitude=address.latitude,
+            longitude=address.longitude
+        )
 
         # Pajak (PPN 11%)
         tax_amount = round(subtotal * Decimal('0.11'))
@@ -210,11 +265,14 @@ class OrderService:
             item.product.stock -= item.quantity
             item.product.save()
 
-        # Buat Shipment record dengan service
+        # Buat Shipment record dengan resi otomatis
+        import uuid
+        auto_tracking = f"ES-{courier_upper[:3]}-{order.order_number.split('-')[-1]}-{uuid.uuid4().hex[:6].upper()}"
         Shipment.objects.create(
             order=order,
             courier=courier_upper,
             service=service_upper,
+            tracking_number=auto_tracking,
             status=Shipment.Status.PENDING
         )
 

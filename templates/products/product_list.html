@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load humanize %}
 {% block title %}Katalog Produk Elektronik | ElectroShop{% endblock %}
 
 {% block content %}
@@ -187,10 +188,10 @@
                       <div class="mt-auto">
                         <div class="d-flex flex-column mb-2">
                           {% if product.has_discount %}
-                            <span class="text-decoration-line-through text-muted small" style="font-size: 0.8rem;">Rp {{ product.price|floatformat:0 }}</span>
-                            <span class="fw-bold text-danger fs-5">Rp {{ product.final_price|floatformat:0 }}</span>
+                            <span class="text-decoration-line-through text-muted small" style="font-size: 0.8rem;">Rp {{ product.price|floatformat:0|intcomma }}</span>
+                            <span class="fw-bold text-danger fs-5">Rp {{ product.final_price|floatformat:0|intcomma }}</span>
                           {% else %}
-                            <span class="fw-bold text-primary fs-5">Rp {{ product.price|floatformat:0 }}</span>
+                            <span class="fw-bold text-primary fs-5">Rp {{ product.price|floatformat:0|intcomma }}</span>
                           {% endif %}
                         </div>
 

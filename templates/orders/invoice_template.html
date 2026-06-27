@@ -1,3 +1,4 @@
+{% load humanize %}
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -105,9 +106,9 @@
             <strong>{{ item.product.name }}</strong><br>
             <small style="color: #666;">SKU: {{ item.product.sku }}</small>
           </td>
-          <td class="text-right">Rp {{ item.price|floatformat:0 }}</td>
+          <td class="text-right">Rp {{ item.price|floatformat:0|intcomma }}</td>
           <td class="text-right">{{ item.quantity }}</td>
-          <td class="text-right">Rp {{ item.subtotal|floatformat:0 }}</td>
+          <td class="text-right">Rp {{ item.subtotal|floatformat:0|intcomma }}</td>
         </tr>
       {% endfor %}
     </tbody>
@@ -117,25 +118,33 @@
   <table class="totals-table" style="width: 40%; margin-left: 60%;">
     <tr>
       <td>Subtotal Barang:</td>
-      <td class="text-right">Rp {{ order.total_amount|floatformat:0 }}</td>
+      <td class="text-right">Rp {{ order.total_amount|floatformat:0|intcomma }}</td>
     </tr>
     <tr>
-      <td>Biaya Kirim ({{ order.shipment.courier }}):</td>
-      <td class="text-right">Rp {{ order.shipping_cost|floatformat:0 }}</td>
+      <td>Biaya Kirim ({% if order.shipment %}{{ order.shipment.courier }}{% else %}Reguler{% endif %}):</td>
+      <td class="text-right">Rp {{ order.shipping_cost|floatformat:0|intcomma }}</td>
     </tr>
     <tr>
       <td>Pajak (PPN 11%):</td>
-      <td class="text-right">Rp {{ order.tax_amount|floatformat:0 }}</td>
+      <td class="text-right">Rp {{ order.tax_amount|floatformat:0|intcomma }}</td>
     </tr>
     {% if order.discount_amount > 0 %}
       <tr style="color: red;">
         <td>Potongan Diskon:</td>
-        <td class="text-right">-Rp {{ order.discount_amount|floatformat:0 }}</td>
+        <td class="text-right">-Rp {{ order.discount_amount|floatformat:0|intcomma }}</td>
       </tr>
     {% endif %}
+    <tr>
+      <td>Total Belanja:</td>
+      <td class="text-right">Rp {{ order.final_amount|floatformat:0|intcomma }}</td>
+    </tr>
+    <tr style="color: #666;">
+      <td>Kode Unik:</td>
+      <td class="text-right">Rp {{ order.unique_code|intcomma }}</td>
+    </tr>
     <tr class="total-row" style="border-top: 1px solid #00b0ff;">
       <td>Total Bayar:</td>
-      <td class="text-right">Rp {{ order.final_amount|floatformat:0 }}</td>
+      <td class="text-right">Rp {{ order.payment_amount|floatformat:0|intcomma }}</td>
     </tr>
   </table>
 

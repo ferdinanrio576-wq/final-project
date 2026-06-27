@@ -2,6 +2,7 @@ from django.urls import path
 from .views import (
     RegisterView, LoginView, LogoutView, ProfileView,
     AddressListView, AddressCreateView, AddressUpdateView, AddressDeleteView,
+    OTPVerificationView, ResendOTPView,
     EmailVerificationView, ResendVerificationEmailView,
     CustomPasswordResetView, CustomPasswordResetDoneView,
     CustomPasswordResetConfirmView, CustomPasswordResetCompleteView,
@@ -14,6 +15,8 @@ urlpatterns = [
     path('logout/', LogoutView.as_view(), name='logout'),
     path('verify-email/<uidb64>/<token>/', EmailVerificationView.as_view(), name='verify_email'),
     path('verify-email/resend/', ResendVerificationEmailView.as_view(), name='resend_verification_email'),
+    path('otp/verify/', OTPVerificationView.as_view(), name='otp_verify'),
+    path('otp/resend/', ResendOTPView.as_view(), name='resend_otp'),
     path('profile/', ProfileView.as_view(), name='profile'),
     
     path('password-reset/', CustomPasswordResetView.as_view(), name='password_reset'),

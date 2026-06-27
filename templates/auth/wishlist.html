@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load humanize %}
 {% block title %}Wishlist Saya | ElectroShop{% endblock %}
 
 {% block content %}
@@ -54,7 +55,7 @@
                     </div>
 
                     <div class="mt-auto">
-                      <p class="fw-bold text-primary mb-2">Rp {{ prod.final_price|default:prod.price|floatformat:0 }}</p>
+                      <p class="fw-bold text-primary mb-2">Rp {{ prod.final_price|default:prod.price|floatformat:0|intcomma }}</p>
                       
                       <form action="{% url 'cart_add' prod.id %}" method="POST">
                         {% csrf_token %}

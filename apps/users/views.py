@@ -1,6 +1,7 @@
 from django.shortcuts import render, redirect
 from django.http import JsonResponse
 from django.views import View
+from django.conf import settings
 from django.views.generic import FormView, TemplateView, CreateView, UpdateView, DeleteView
 from django.contrib.auth import login, logout, authenticate
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -32,25 +33,16 @@ class RegisterView(FormView):
             username=form.cleaned_data['username'],
             password=form.cleaned_data['password']
         )
-        # Kirim OTP ke email
-        try:
-            service.send_otp_email(user)
-            # Simpan user_id di session untuk proses verifikasi OTP
-            self.request.session['otp_user_id'] = user.id
-            self.request.session['otp_email'] = user.email
-            messages.success(
-                self.request,
-                f"Registrasi berhasil! Kode verifikasi OTP telah dikirim ke {EmailOTP.mask_email(user.email)}."
-            )
-        except Exception as e:
-            # Jika email gagal terkirim, tetap simpan ke session agar bisa kirim ulang
-            self.request.session['otp_user_id'] = user.id
-            self.request.session['otp_email'] = user.email
-            messages.warning(
-                self.request,
-                "Registrasi berhasil, namun email OTP gagal dikirim. Gunakan tombol 'Kirim Ulang OTP'."
-            )
-        return redirect('otp_verify')
+        
+        # Tandai email verified (karena tanpa OTP) dan langsung login
+        user.email_verified = True
+        user.save()
+        
+        from django.contrib.auth import login
+        login(self.request, user)
+        
+        messages.success(self.request, f"Registrasi berhasil! Selamat datang, {user.username}.")
+        return redirect('product_list')
 
     def form_invalid(self, form):
         messages.error(self.request, "Terjadi kesalahan pada registrasi.")
@@ -183,6 +175,20 @@ class LoginView(FormView):
             if user.is_banned:
                 messages.error(self.request, "Akun Anda ditangguhkan (banned).")
                 return self.form_invalid(form)
+            
+            # Check email verification
+            if not user.email_verified:
+                # Send new OTP and redirect to verification
+                self.request.session['otp_user_id'] = user.id
+                self.request.session['otp_email'] = user.email
+                service = UserService()
+                try:
+                    service.send_otp_email(user)
+                except Exception:
+                    pass
+                messages.warning(self.request, "Email Anda belum terverifikasi. Kode OTP baru telah dikirim.")
+                return redirect('otp_verify')
+            
             login(self.request, user)
             cache.delete(cache_key)
             messages.success(self.request, f"Selamat datang kembali, {user.username}!")
@@ -301,6 +307,11 @@ class AddressCreateView(LoginRequiredMixin, CreateView):
     template_name = 'auth/address_form.html'
     success_url = reverse_lazy('address_list')
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['google_maps_api_key'] = settings.GOOGLE_MAPS_API_KEY
+        return context
+
     def form_valid(self, form):
         form.instance.user = self.request.user
         self.object = form.save()
@@ -317,6 +328,9 @@ class AddressCreateView(LoginRequiredMixin, CreateView):
                     'city': self.object.city,
                     'province': self.object.province,
                     'postal_code': self.object.postal_code,
+                    'place_id': self.object.place_id,
+                    'latitude': str(self.object.latitude) if self.object.latitude is not None else None,
+                    'longitude': str(self.object.longitude) if self.object.longitude is not None else None,
                 }
             })
         messages.success(self.request, "Alamat berhasil ditambahkan.")
@@ -336,6 +350,11 @@ class AddressUpdateView(LoginRequiredMixin, UpdateView):
     form_class = AddressForm
     template_name = 'auth/address_form.html'
     success_url = reverse_lazy('address_list')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['google_maps_api_key'] = settings.GOOGLE_MAPS_API_KEY
+        return context
 
     def get_queryset(self):
         return Address.objects.filter(user=self.request.user)

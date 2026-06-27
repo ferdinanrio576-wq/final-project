@@ -65,7 +65,16 @@
         <h5 class="fw-bold mb-3 text-dark"><i class="bi bi-geo-alt me-2 text-primary"></i>Alamat Pengiriman</h5>
         <h6 class="fw-bold mb-1 text-dark">{{ order.shipping_recipient_name }}</h6>
         <p class="mb-1 text-muted small">{{ order.shipping_phone_number }}</p>
-        <p class="mb-0 text-muted small">{{ order.shipping_street_address }}, {{ order.shipping_city }}, {{ order.shipping_province }} {{ order.shipping_postal_code }}</p>
+        <p class="mb-3 text-muted small">{{ order.shipping_street_address }}, {{ order.shipping_city }}, {{ order.shipping_province }} {{ order.shipping_postal_code }}</p>
+        
+        <h5 class="fw-bold mb-2 mt-2 text-dark border-top pt-3"><i class="bi bi-truck me-2 text-primary"></i>Info Ekspedisi</h5>
+        <p class="mb-1 small">Kurir: <strong>{{ order.shipment.courier|default:"-"|upper }}</strong></p>
+        <p class="mb-1 small">Layanan: <strong>{{ order.shipment.service|default:"-"|upper }}</strong></p>
+        {% if order.shipment.tracking_number %}
+        <p class="mb-0 small">Nomor Resi: <strong class="text-primary">{{ order.shipment.tracking_number }}</strong></p>
+        {% else %}
+        <p class="mb-0 small text-danger"><em>Resi belum diinput</em></p>
+        {% endif %}
       </div>
 
     </div>
@@ -92,6 +101,34 @@
           <div class="small text-muted">Waktu Lunas: <strong class="text-dark">{{ order.paid_at|date:"d M Y H:i" }} WIB</strong></div>
         </div>
       {% endif %}
+
+      {% for payment in order.payments.all %}
+        {% if payment.proof_of_transfer %}
+          <div class="card shadow border-0 p-4 mb-4" style="border-radius: 12px;">
+            <h5 class="fw-bold mb-3 text-dark d-flex align-items-center">
+              <i class="bi bi-file-earmark-image me-2 text-primary"></i>Bukti Transfer
+            </h5>
+            <div class="small text-muted mb-3">
+              Bank: <strong class="text-dark">{{ payment.selected_bank|default:"-" }}</strong><br>
+              Nominal: <strong class="text-dark">Rp {{ payment.amount|floatformat:0 }}</strong><br>
+              Status: 
+              {% if payment.status == 'SUCCESS' %}
+                <span class="badge bg-success">Berhasil</span>
+              {% elif payment.status == 'PENDING' %}
+                <span class="badge bg-warning text-dark">Menunggu Verifikasi</span>
+              {% else %}
+                <span class="badge bg-danger">{{ payment.status }}</span>
+              {% endif %}
+            </div>
+            <div class="border rounded p-2 text-center bg-light">
+              <a href="{{ payment.proof_of_transfer.url }}" target="_blank">
+                <img src="{{ payment.proof_of_transfer.url }}" alt="Bukti Transfer" class="img-fluid rounded shadow-sm" style="max-height: 250px; object-fit: contain;">
+              </a>
+              <div class="form-text mt-2 small text-muted"><i class="bi bi-zoom-in"></i> Klik gambar untuk melihat ukuran penuh</div>
+            </div>
+          </div>
+        {% endif %}
+      {% endfor %}
 
       <div class="card shadow border-0 p-4" style="border-radius: 12px;">
         <h5 class="fw-bold mb-4 text-dark"><i class="bi bi-gear-wide-connected text-primary me-2"></i>Kelola Status</h5>
@@ -121,7 +158,7 @@
             {% if form.tracking_number.errors %}
               <div class="text-danger small mt-1">{{ form.tracking_number.errors.0 }}</div>
             {% endif %}
-            <div class="form-text">Isi resi saat mengubah status pengiriman menjadi 'Sedang Dikirim'.</div>
+            <div class="form-text"><i class="bi bi-info-circle me-1"></i>Resi otomatis dibuat saat checkout. Anda bisa mengubahnya jika perlu.</div>
           </div>
 
           <hr class="text-secondary">

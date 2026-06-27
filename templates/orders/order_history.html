@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load humanize %}
 {% block title %}Pesanan Saya | ElectroShop{% endblock %}
 
 {% block content %}
@@ -60,7 +61,7 @@
                   <div class="d-flex justify-content-between align-items-center">
                     <div>
                       <small class="text-muted">Total Belanja</small>
-                      <h6 class="fw-bold text-primary mb-0">Rp {{ order.final_amount|floatformat:0 }}</h6>
+                      <h6 class="fw-bold text-primary mb-0">Rp {{ order.final_amount|floatformat:0|intcomma }}</h6>
                     </div>
                     <div>
                       <a href="{% url 'order_detail' order.order_number %}" class="btn btn-outline-primary btn-sm fw-bold">Detail Pesanan</a>

@@ -66,7 +66,17 @@
                 </td>
                 <td class="text-muted small">{{ u.date_joined|date:"d M Y" }}</td>
                 <td>
-                  <a href="{% url 'admin_user_edit' u.id %}" class="btn btn-outline-primary btn-sm fw-semibold"><i class="bi bi-gear"></i> Ubah Status</a>
+                  <div class="d-flex gap-1">
+                    <a href="{% url 'admin_user_edit' u.id %}" class="btn btn-outline-primary btn-sm fw-semibold"><i class="bi bi-gear"></i> Ubah Status</a>
+                    {% if u.id != request.user.id %}
+                      <form action="{% url 'admin_user_delete' u.id %}" method="POST" class="d-inline" onsubmit="return confirm('Apakah Anda yakin ingin menghapus akun {{ u.username }} ({{ u.email }}) secara permanen? Semua data terkait (pesanan, alamat, dll) juga akan terhapus.');">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-outline-danger btn-sm fw-semibold">
+                          <i class="bi bi-trash"></i> Hapus
+                        </button>
+                      </form>
+                    {% endif %}
+                  </div>
                 </td>
               </tr>
             {% endfor %}

@@ -61,7 +61,10 @@ class ProfileForm(forms.ModelForm):
 class AddressForm(forms.ModelForm):
     class Meta:
         model = Address
-        fields = ['label', 'recipient_name', 'phone_number', 'street_address', 'city', 'province', 'postal_code', 'is_default']
+        fields = [
+            'label', 'recipient_name', 'phone_number', 'street_address',
+            'city', 'province', 'postal_code', 'place_id', 'latitude', 'longitude', 'is_default'
+        ]
         widgets = {
             'label': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Contoh: Rumah, Kantor'}),
             'recipient_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Nama Penerima'}),
@@ -70,5 +73,22 @@ class AddressForm(forms.ModelForm):
             'city': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Kota/Kabupaten'}),
             'province': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Provinsi'}),
             'postal_code': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Kode Pos'}),
+            'place_id': forms.HiddenInput(),
+            'latitude': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Contoh: -7.424494', 'id': 'id_latitude'}),
+            'longitude': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Contoh: 109.230154', 'id': 'id_longitude'}),
             'is_default': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
+
+    def clean(self):
+        cleaned = super().clean()
+        place_id = cleaned.get('place_id')
+        latitude = cleaned.get('latitude')
+        longitude = cleaned.get('longitude')
+
+        # If a place_id is provided (from Google Maps), ensure lat/lng exist
+        if place_id:
+            if latitude in (None, '') or longitude in (None, ''):
+                self.add_error('place_id', 'Jika menggunakan pemilihan alamat, koordinat (latitude/longitude) harus tersedia.')
+                raise forms.ValidationError('Koordinat alamat tidak lengkap untuk Place ID.')
+
+        return cleaned

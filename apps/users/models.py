@@ -59,6 +59,9 @@ class Address(models.Model):
     city = models.CharField(max_length=100)
     province = models.CharField(max_length=100)
     postal_code = models.CharField(max_length=10)
+    place_id = models.CharField(max_length=255, blank=True, null=True, help_text="Google Place ID untuk verifikasi alamat")
+    latitude = models.DecimalField(max_digits=11, decimal_places=8, blank=True, null=True)
+    longitude = models.DecimalField(max_digits=11, decimal_places=8, blank=True, null=True)
     is_default = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 

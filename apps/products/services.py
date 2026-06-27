@@ -31,11 +31,17 @@ class ReviewService:
         if Review.objects.filter(user=user, product=product).exists():
             raise ValueError("Anda sudah pernah memberikan ulasan untuk produk ini.")
 
-        # Cek apakah user sudah pernah membeli produk ini
+        # Cek apakah user sudah pernah membeli produk ini dan status pesanan sudah sah
         from orders.models import Order
+        valid_purchase_statuses = [
+            Order.Status.PAID,
+            Order.Status.PROCESSING,
+            Order.Status.SHIPPED,
+            Order.Status.COMPLETED,
+        ]
         has_purchased = Order.objects.filter(
             user=user,
-            status='COMPLETED',
+            status__in=valid_purchase_statuses,
             items__product=product
         ).exists()
 

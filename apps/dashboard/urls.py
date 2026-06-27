@@ -6,7 +6,7 @@ from .views import (
     AdminBrandCreateView, AdminBrandUpdateView, AdminBrandDeleteView,
     AdminCouponListView, AdminCouponCreateView, AdminCouponUpdateView,
     AdminOrderListView, AdminOrderDetailView, AdminVerifyPaymentView, AdminUserListView,
-    AdminUserUpdateView, ReportsView, ExportReportView
+    AdminUserUpdateView, AdminUserDeleteView, ReportsView, ExportReportView
 )
 
 urlpatterns = [
@@ -42,6 +42,7 @@ urlpatterns = [
     # User Management
     path('users/', AdminUserListView.as_view(), name='admin_user_list'),
     path('users/<int:pk>/edit/', AdminUserUpdateView.as_view(), name='admin_user_edit'),
+    path('users/<int:pk>/delete/', AdminUserDeleteView.as_view(), name='admin_user_delete'),
     
     # Reports Export
     path('reports/', ReportsView.as_view(), name='admin_reports'),
