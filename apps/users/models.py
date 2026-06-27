@@ -1,5 +1,9 @@
+import random
+import string
+from datetime import timedelta
 from django.db import models
 from django.contrib.auth.models import AbstractUser
+from django.utils import timezone
 
 class User(AbstractUser):
     class Role(models.TextChoices):
@@ -66,3 +70,48 @@ class Address(models.Model):
 
     def __str__(self):
         return f"{self.label} - {self.recipient_name} ({self.city})"
+
+
+class EmailOTP(models.Model):
+    """Model untuk menyimpan OTP verifikasi email - berlaku 10 menit."""
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='email_otps')
+    otp_code = models.CharField(max_length=6)
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+    is_used = models.BooleanField(default=False)
+
+    def save(self, *args, **kwargs):
+        if not self.expires_at:
+            self.expires_at = timezone.now() + timedelta(minutes=10)
+        super().save(*args, **kwargs)
+
+    def is_valid(self):
+        """Cek apakah OTP masih valid (belum expired dan belum digunakan)."""
+        return not self.is_used and timezone.now() < self.expires_at
+
+    @classmethod
+    def generate_otp(cls):
+        """Generate kode OTP 6 digit angka."""
+        return ''.join(random.choices(string.digits, k=6))
+
+    @staticmethod
+    def mask_email(email: str) -> str:
+        """Masking email untuk tampilan privasi: ra***@gmail.com"""
+        parts = email.split('@')
+        if len(parts) != 2:
+            return email
+        local = parts[0]
+        domain = parts[1]
+        if len(local) <= 2:
+            masked_local = local[0] + '***'
+        else:
+            masked_local = local[:2] + '***'
+        return f"{masked_local}@{domain}"
+
+    def __str__(self):
+        return f"OTP for {self.user.email} ({'valid' if self.is_valid() else 'expired/used'})"
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = 'Email OTP'
+        verbose_name_plural = 'Email OTPs'

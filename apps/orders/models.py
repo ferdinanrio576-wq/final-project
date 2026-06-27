@@ -66,7 +66,7 @@ class Order(models.Model):
     # Unique payment code fields
     unique_code = models.IntegerField(default=0)
     payment_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
-    payment_status = models.CharField(max_length=20, default='UNPAID')
+    payment_status = models.CharField(max_length=50, default='UNPAID')
     paid_at = models.DateTimeField(null=True, blank=True)
     
     # Store shipping address snapshot in case address is updated/deleted
@@ -77,6 +77,9 @@ class Order(models.Model):
     shipping_city = models.CharField(max_length=100)
     shipping_province = models.CharField(max_length=100)
     shipping_postal_code = models.CharField(max_length=10)
+    
+    # Snapshot layanan pengiriman
+    shipping_service = models.CharField(max_length=20, blank=True, default='REG', help_text="Paket layanan kurir: REG, YES, OKE, dll")
     
     coupon = models.ForeignKey('coupons.Coupon', on_delete=models.SET_NULL, null=True, blank=True, related_name='orders')
     created_at = models.DateTimeField(auto_now_add=True)
@@ -122,10 +125,16 @@ class Shipment(models.Model):
 
     order = models.OneToOneField(Order, on_delete=models.CASCADE, related_name='shipment')
     courier = models.CharField(max_length=10, choices=Courier.choices, default=Courier.JNE)
+    service = models.CharField(max_length=20, blank=True, default='REG', help_text="Paket layanan: REG, YES, OKE, ONS, ECO, BIASA, KILAT")
     tracking_number = models.CharField(max_length=50, blank=True, null=True)
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)
     shipped_at = models.DateTimeField(null=True, blank=True)
     delivered_at = models.DateTimeField(null=True, blank=True)
+
+    def save(self, *args, **kwargs):
+        if self.status in [self.Status.SHIPPED, self.Status.DELIVERED] and not self.tracking_number:
+            self.tracking_number = f"TRK-{self.order.order_number.split('-')[-1]}-{uuid.uuid4().hex[:6].upper()}"
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"Shipment for {self.order.order_number} via {self.courier}"

@@ -1,4 +1,5 @@
 import time
+from decimal import Decimal
 
 from .repositories import CartRepository, OrderRepository, WishlistRepository
 from .models import Cart, CartItem, Order, OrderItem, Shipment
@@ -7,6 +8,41 @@ from users.models import Address
 from coupons.models import Coupon
 from django.db import OperationalError, transaction
 
+# ─── Tarif Pengiriman Per Kurir & Paket ────────────────────────────────────────
+# Format: { 'KURIR': { 'PAKET': {'label': ..., 'rate_per_kg': ..., 'estimate': ...} } }
+SHIPPING_PACKAGES = {
+    'JNE': {
+        'REG': {'label': 'REG (Reguler)', 'rate_per_kg': 9000, 'estimate': '2-5 hari kerja'},
+        'YES': {'label': 'YES (Yakin Esok Sampai)', 'rate_per_kg': 22000, 'estimate': '1 hari kerja'},
+        'OKE': {'label': 'OKE (Ongkos Kirim Ekonomis)', 'rate_per_kg': 7000, 'estimate': '5-7 hari kerja'},
+    },
+    'TIKI': {
+        'REG': {'label': 'REG (Regular)', 'rate_per_kg': 10000, 'estimate': '2-4 hari kerja'},
+        'ONS': {'label': 'ONS (Over Night Service)', 'rate_per_kg': 25000, 'estimate': '1 hari kerja'},
+        'ECO': {'label': 'ECO (Economy)', 'rate_per_kg': 8000, 'estimate': '5-8 hari kerja'},
+    },
+    'POS': {
+        'BIASA': {'label': 'Paket Biasa', 'rate_per_kg': 8000, 'estimate': '3-7 hari kerja'},
+        'KILAT': {'label': 'Paket Kilat', 'rate_per_kg': 18000, 'estimate': '1-2 hari kerja'},
+    },
+}
+
+
+def calculate_shipping_cost(courier: str, service: str, total_weight_grams: int) -> int:
+    """Hitung ongkir berdasarkan kurir, paket, dan berat total (dalam gram)."""
+    courier_data = SHIPPING_PACKAGES.get(courier.upper(), {})
+    service_data = courier_data.get(service.upper(), None)
+
+    if not service_data:
+        # Fallback: rate default Rp 15.000/kg
+        rate = 15000
+    else:
+        rate = service_data['rate_per_kg']
+
+    weight_kg = max(1.0, total_weight_grams / 1000.0)
+    return round(weight_kg * rate)
+
+
 class CartService:
     def __init__(self):
         self.cart_repo = CartRepository()
@@ -14,7 +50,6 @@ class CartService:
     def get_cart(self, user=None, session_key: str = None) -> Cart:
         if user and user.is_authenticated:
             cart, _ = self.cart_repo.get_user_cart(user)
-            # If session key has a cart, merge it
             if session_key:
                 session_cart = Cart.objects.filter(session_key=session_key).first()
                 if session_cart and session_cart != cart:
@@ -86,32 +121,38 @@ class OrderService:
     @retry_on_database_lock
     @transaction.atomic
     def checkout(
-        self, user, cart: Cart, address: Address, courier: str, 
-        coupon_code: str = None
+        self, user, cart: Cart, address: Address, courier: str,
+        coupon_code: str = None, shipping_service: str = None
     ) -> Order:
         if cart.items.count() == 0:
             raise ValueError("Keranjang belanja kosong.")
 
-        # Validate stock before continuing
+        # Validasi stok sebelum lanjut
         for item in cart.items.all():
             if item.product.stock < item.quantity:
                 raise ValueError(f"Stok produk '{item.product.name}' tidak mencukupi.")
 
-        # Calculate costs
         subtotal = cart.subtotal
-        
-        from decimal import Decimal
-        
-        # Simulate shipping cost based on courier and product weights
+
+        # Hitung total berat
         total_weight = sum(item.product.weight_grams * item.quantity for item in cart.items.all())
-        # Base shipping rate: Rp 15.000 per kg
-        weight_kg = max(1.0, total_weight / 1000.0)
-        shipping_cost = round(weight_kg * 15000)
-        
-        # Tax calculation (11% of subtotal)
+
+        # Tentukan paket layanan (default REG jika tidak dipilih)
+        courier_upper = courier.upper() if courier else 'JNE'
+        service_upper = (shipping_service or 'REG').upper()
+
+        # Validasi service ada untuk kurir yang dipilih
+        courier_packages = SHIPPING_PACKAGES.get(courier_upper, {})
+        if service_upper not in courier_packages:
+            # Ambil paket pertama yang tersedia
+            service_upper = list(courier_packages.keys())[0] if courier_packages else 'REG'
+
+        shipping_cost = calculate_shipping_cost(courier_upper, service_upper, total_weight)
+
+        # Pajak (PPN 11%)
         tax_amount = round(subtotal * Decimal('0.11'))
-        
-        # Discount logic with Coupon
+
+        # Diskon kupon
         discount_amount = 0
         coupon = None
         if coupon_code:
@@ -119,29 +160,29 @@ class OrderService:
                 coupon = Coupon.objects.get(code__iexact=coupon_code, is_active=True)
                 if coupon.is_valid(user, subtotal):
                     discount_amount = round(subtotal * Decimal(coupon.discount_percentage) / Decimal('100'))
-                    # Cap the discount
                     if coupon.max_discount_amount and discount_amount > coupon.max_discount_amount:
                         discount_amount = coupon.max_discount_amount
                     coupon.used_count += 1
                     coupon.save()
             except Coupon.DoesNotExist:
-                pass # invalid or expired coupon is ignored
+                pass
 
-        # Calculate final amount for unique code addition
         final_amount = (subtotal + Decimal(shipping_cost) + Decimal(tax_amount)) - Decimal(discount_amount)
-        
+
         import random
-        # Generate unique code with collision check
         max_attempts = 100
         unique_code = random.randint(100, 999)
         attempts = 0
-        while Order.objects.filter(status__in=[Order.Status.PENDING, Order.Status.AWAITING_VERIFICATION], unique_code=unique_code).exists() and attempts < max_attempts:
+        while Order.objects.filter(
+            status__in=[Order.Status.PENDING, Order.Status.AWAITING_VERIFICATION],
+            unique_code=unique_code
+        ).exists() and attempts < max_attempts:
             unique_code = random.randint(100, 999)
             attempts += 1
 
         payment_amount = final_amount + Decimal(unique_code)
 
-        # Create Order
+        # Buat Order
         order = self.order_repo.create_order(
             user=user,
             address=address,
@@ -154,7 +195,11 @@ class OrderService:
             coupon=coupon
         )
 
-        # Create Order Items and decrease product stock
+        # Simpan shipping_service ke Order
+        order.shipping_service = service_upper
+        order.save()
+
+        # Buat Order Items dan kurangi stok
         for item in cart.items.all():
             OrderItem.objects.create(
                 order=order,
@@ -162,21 +207,21 @@ class OrderService:
                 price=item.product.final_price,
                 quantity=item.quantity
             )
-            # Decrease stock
             item.product.stock -= item.quantity
             item.product.save()
 
-        # Create Shipment record
+        # Buat Shipment record dengan service
         Shipment.objects.create(
             order=order,
-            courier=courier,
+            courier=courier_upper,
+            service=service_upper,
             status=Shipment.Status.PENDING
         )
 
-        # Clear Cart
+        # Bersihkan Keranjang
         cart.items.all().delete()
 
-        # Create notification in-app
+        # Notifikasi in-app
         from notifications.services import NotificationService
         notif_service = NotificationService()
         notif_service.create_notification(
@@ -202,7 +247,7 @@ class WishlistService:
 
         if product in wishlist.products.all():
             wishlist.products.remove(product)
-            return False # removed
+            return False
         else:
             wishlist.products.add(product)
-            return True # added
+            return True

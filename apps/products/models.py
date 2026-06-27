@@ -73,6 +73,13 @@ class Product(models.Model):
     def has_discount(self):
         return self.discount_price is not None and self.discount_price < self.price
 
+    # Static image mapping for products (used when no uploaded images exist)
+    STATIC_IMAGE_MAP = {
+        'ROG-G14': 'https://picsum.photos/seed/asus-rog-g14/600/600',
+        'S24-ULTRA': 'https://picsum.photos/seed/samsung-s24/600/600',
+        'IPHONE-15P': 'https://picsum.photos/seed/iphone15/600/600',
+    }
+
     @property
     def primary_image_url(self):
         primary_img = self.images.filter(is_primary=True).first()
@@ -81,7 +88,8 @@ class Product(models.Model):
         first_img = self.images.first()
         if first_img:
             return first_img.image.url
-        return "/static/images/default-product.png"
+        # Fallback to static image based on SKU, then default
+        return self.STATIC_IMAGE_MAP.get(self.sku, "https://picsum.photos/seed/product-default/600/600")
 
     @property
     def average_rating(self):

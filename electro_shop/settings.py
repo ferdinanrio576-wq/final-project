@@ -12,13 +12,13 @@ sys.path.insert(0, os.path.join(BASE_DIR, 'apps'))
 # Initialize environment variables
 env = environ.Env(
     DEBUG=(bool, True),
-    ALLOWED_HOSTS=(list, ['localhost', '127.0.0.1']),
+    ALLOWED_HOSTS=(list, ['.vercel.app']),
 )
 environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
 
 SECRET_KEY = env('SECRET_KEY', default='django-insecure-default-key-change-it-in-production')
 DEBUG = env('DEBUG', default=True)
-ALLOWED_HOSTS = env('ALLOWED_HOSTS', default=['localhost', '127.0.0.1', '*.vercel.app'])
+ALLOWED_HOSTS = env('ALLOWED_HOSTS', default=['localhost', '127.0.0.1', '.vercel.app', 'vercel.app'])
 
 # Application definition
 INSTALLED_APPS = [
@@ -94,10 +94,13 @@ if DB_NAME:
         }
     }
 else:
+    DEFAULT_SQLITE_PATH = Path('/tmp/db.sqlite3') if os.environ.get('VERCEL') else BASE_DIR / 'db.sqlite3'
+    SQLITE_DB_PATH = env('SQLITE_DB_PATH', default=str(DEFAULT_SQLITE_PATH))
+
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'db.sqlite3',
+            'NAME': SQLITE_DB_PATH,
             'OPTIONS': {
                 'timeout': 60,
             },

@@ -12,17 +12,18 @@ from django.contrib.auth.views import (
 from django.urls import reverse_lazy
 from django.contrib import messages
 from django.core.cache import cache
-from .models import User, Profile, Address
+from .models import User, Profile, Address, EmailOTP
 from .forms import LoginForm, RegisterForm, ProfileForm, AddressForm
 from .services import UserService, AddressService
 
 MAX_LOGIN_ATTEMPTS = 5
 LOGIN_LOCKOUT_TIMEOUT = 300  # seconds
 
+
 class RegisterView(FormView):
     template_name = 'auth/register.html'
     form_class = RegisterForm
-    success_url = reverse_lazy('login')
+    success_url = reverse_lazy('otp_verify')
 
     def form_valid(self, form):
         service = UserService()
@@ -31,16 +32,134 @@ class RegisterView(FormView):
             username=form.cleaned_data['username'],
             password=form.cleaned_data['password']
         )
+        # Kirim OTP ke email
         try:
-            service.send_verification_email(user, self.request)
-            messages.success(self.request, "Registrasi sukses! Cek email Anda untuk verifikasi akun.")
-        except Exception:
-            messages.success(self.request, "Registrasi sukses! Silakan login, namun verifikasi email gagal dikirim.")
-        return super().form_valid(form)
+            service.send_otp_email(user)
+            # Simpan user_id di session untuk proses verifikasi OTP
+            self.request.session['otp_user_id'] = user.id
+            self.request.session['otp_email'] = user.email
+            messages.success(
+                self.request,
+                f"Registrasi berhasil! Kode verifikasi OTP telah dikirim ke {EmailOTP.mask_email(user.email)}."
+            )
+        except Exception as e:
+            # Jika email gagal terkirim, tetap simpan ke session agar bisa kirim ulang
+            self.request.session['otp_user_id'] = user.id
+            self.request.session['otp_email'] = user.email
+            messages.warning(
+                self.request,
+                "Registrasi berhasil, namun email OTP gagal dikirim. Gunakan tombol 'Kirim Ulang OTP'."
+            )
+        return redirect('otp_verify')
 
     def form_invalid(self, form):
         messages.error(self.request, "Terjadi kesalahan pada registrasi.")
         return super().form_invalid(form)
+
+
+class OTPVerificationView(View):
+    """Halaman input kode OTP 6 digit setelah registrasi."""
+
+    def get(self, request):
+        user_id = request.session.get('otp_user_id')
+        if not user_id:
+            messages.error(request, "Sesi verifikasi tidak ditemukan. Silakan daftar ulang.")
+            return redirect('register')
+
+        try:
+            user = User.objects.get(id=user_id)
+        except User.DoesNotExist:
+            messages.error(request, "User tidak ditemukan.")
+            return redirect('register')
+
+        if user.email_verified:
+            messages.info(request, "Email Anda sudah terverifikasi. Silakan login.")
+            return redirect('login')
+
+        masked_email = EmailOTP.mask_email(user.email)
+        return render(request, 'auth/otp_verify.html', {
+            'masked_email': masked_email,
+            'user_email': user.email,
+        })
+
+    def post(self, request):
+        user_id = request.session.get('otp_user_id')
+        if not user_id:
+            messages.error(request, "Sesi verifikasi tidak ditemukan.")
+            return redirect('register')
+
+        try:
+            user = User.objects.get(id=user_id)
+        except User.DoesNotExist:
+            messages.error(request, "User tidak ditemukan.")
+            return redirect('register')
+
+        # Gabungkan 6 digit dari input terpisah atau dari satu field
+        otp_parts = [
+            request.POST.get('otp_1', ''),
+            request.POST.get('otp_2', ''),
+            request.POST.get('otp_3', ''),
+            request.POST.get('otp_4', ''),
+            request.POST.get('otp_5', ''),
+            request.POST.get('otp_6', ''),
+        ]
+        # Fallback: coba ambil dari field tunggal 'otp_code'
+        otp_code = ''.join(otp_parts).strip()
+        if not otp_code or len(otp_code) < 6:
+            otp_code = request.POST.get('otp_code', '').strip()
+
+        service = UserService()
+        success, message = service.verify_otp(user, otp_code)
+
+        if success:
+            # Hapus session OTP
+            request.session.pop('otp_user_id', None)
+            request.session.pop('otp_email', None)
+            messages.success(request, "Email berhasil diverifikasi! Silakan login.")
+            return redirect('login')
+        else:
+            masked_email = EmailOTP.mask_email(user.email)
+            messages.error(request, message)
+            return render(request, 'auth/otp_verify.html', {
+                'masked_email': masked_email,
+                'user_email': user.email,
+            })
+
+
+class ResendOTPView(View):
+    """Kirim ulang OTP ke email user."""
+
+    def post(self, request):
+        user_id = request.session.get('otp_user_id')
+        if not user_id:
+            if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+                return JsonResponse({'success': False, 'message': 'Sesi tidak ditemukan.'})
+            messages.error(request, "Sesi verifikasi tidak ditemukan.")
+            return redirect('register')
+
+        try:
+            user = User.objects.get(id=user_id)
+        except User.DoesNotExist:
+            if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+                return JsonResponse({'success': False, 'message': 'User tidak ditemukan.'})
+            return redirect('register')
+
+        service = UserService()
+        try:
+            service.send_otp_email(user)
+            masked_email = EmailOTP.mask_email(user.email)
+            if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+                return JsonResponse({
+                    'success': True,
+                    'message': f'OTP baru telah dikirim ke {masked_email}.'
+                })
+            messages.success(request, f"OTP baru telah dikirim ke {masked_email}.")
+        except Exception as e:
+            if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+                return JsonResponse({'success': False, 'message': 'Gagal mengirim OTP. Coba lagi.'})
+            messages.error(request, "Gagal mengirim OTP. Silakan coba lagi.")
+
+        return redirect('otp_verify')
 
 
 class LoginView(FormView):
@@ -59,7 +178,7 @@ class LoginView(FormView):
             return self.form_invalid(form)
 
         user = authenticate(self.request, username=email, password=password)
-        
+
         if user is not None:
             if user.is_banned:
                 messages.error(self.request, "Akun Anda ditangguhkan (banned).")
@@ -67,11 +186,10 @@ class LoginView(FormView):
             login(self.request, user)
             cache.delete(cache_key)
             messages.success(self.request, f"Selamat datang kembali, {user.username}!")
-            
-            # Redirect admin to dashboard
+
             if user.is_admin_user:
                 return redirect('dashboard_index')
-                
+
             return super().form_valid(form)
 
         attempts += 1
@@ -89,6 +207,7 @@ class LogoutView(View):
 
 
 class EmailVerificationView(View):
+    """Verifikasi via link token (metode lama - backward compat)."""
     def get(self, request, uidb64, token):
         service = UserService()
         success = service.verify_email(uidb64, token)
