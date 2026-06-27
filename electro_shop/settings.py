@@ -18,7 +18,7 @@ environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
 
 SECRET_KEY = env('SECRET_KEY', default='django-insecure-default-key-change-it-in-production')
 DEBUG = env('DEBUG', default=True)
-ALLOWED_HOSTS = env('ALLOWED_HOSTS', default=['localhost', '127.0.0.1', '.vercel.app', 'vercel.app'])
+ALLOWED_HOSTS = ['*']
 
 # Application definition
 INSTALLED_APPS = [
@@ -28,6 +28,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.humanize',
     
     # Third-party apps
     'rest_framework',
@@ -80,20 +81,17 @@ WSGI_APPLICATION = 'electro_shop.wsgi.application'
 ASGI_APPLICATION = 'electro_shop.asgi.application'
 
 # Database Configuration
-# Fallback to SQLite if DB credentials are not set in .env
-DB_NAME = env('DB_NAME', default='')
-if DB_NAME:
+# Di Vercel, kita WAJIB menggunakan PostgreSQL (Supabase/Neon/Vercel Postgres) 
+# karena SQLite akan terhapus otomatis setiap kali server restart.
+# Cukup tambahkan environment variable `DATABASE_URL` di dashboard Vercel.
+
+if env('DATABASE_URL', default=None):
+    # Jika ada DATABASE_URL (seperti di Vercel), gunakan itu
     DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.postgresql',
-            'NAME': env('DB_NAME'),
-            'USER': env('DB_USER'),
-            'PASSWORD': env('DB_PASSWORD'),
-            'HOST': env('DB_HOST'),
-            'PORT': env('DB_PORT'),
-        }
+        'default': env.db('DATABASE_URL')
     }
 else:
+    # Fallback ke SQLite untuk development lokal atau Vercel tanpa Postgres
     DEFAULT_SQLITE_PATH = Path('/tmp/db.sqlite3') if os.environ.get('VERCEL') else BASE_DIR / 'db.sqlite3'
     SQLITE_DB_PATH = env('SQLITE_DB_PATH', default=str(DEFAULT_SQLITE_PATH))
 
@@ -138,7 +136,10 @@ STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 MEDIA_URL = '/media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+if bool(os.environ.get('VERCEL', '')):
+    MEDIA_ROOT = '/tmp/media'
+else:
+    MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
@@ -220,33 +221,66 @@ SIMPLE_JWT = {
 }
 
 # Email Backend Settings
-if DEBUG:
-    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
-else:
-    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-    EMAIL_HOST = env('EMAIL_HOST')
-    EMAIL_PORT = env('EMAIL_PORT', cast=int)
-    EMAIL_USE_TLS = env('EMAIL_USE_TLS', cast=bool)
-    EMAIL_HOST_USER = env('EMAIL_HOST_USER')
-    EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD')
-DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', default='ElectroShop <noreply@electroshop.com>')
+EMAIL_HOST_USER = env('EMAIL_HOST_USER', default='')
 
-# Security headers for production
+if EMAIL_HOST_USER:
+    # Real SMTP — OTP emails will be delivered to real inboxes
+    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+    EMAIL_HOST = env('EMAIL_HOST', default='smtp.gmail.com')
+    EMAIL_PORT = env('EMAIL_PORT', cast=int, default=587)
+    EMAIL_USE_TLS = env('EMAIL_USE_TLS', cast=bool, default=True)
+    EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD', default='')
+    DEFAULT_FROM_EMAIL = f'ElectroShop <{EMAIL_HOST_USER}>'
+else:
+    # Console fallback — OTP codes will print in terminal
+    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+    DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', default='ElectroShop <noreply@electroshop.com>')
+
+GOOGLE_MAPS_API_KEY = env('GOOGLE_MAPS_API_KEY', default='')
+
+# ============================================
+# SESSION: Cookie-based (WAJIB untuk Vercel)
+# ============================================
+# Di Vercel (serverless), SQLite database bersifat ephemeral.
+# Session HARUS disimpan di cookie browser, bukan di database.
+# Kita aktifkan ini SELALU (bukan hanya di Vercel) agar konsisten.
+SESSION_ENGINE = 'django.contrib.sessions.backends.signed_cookies'
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = 'Lax'
+SESSION_COOKIE_AGE = 60 * 60 * 24 * 7  # 7 hari
+SESSION_COOKIE_NAME = 'electroshop_session'
+
+# Di Vercel (HTTPS), cookie harus Secure. Di lokal (HTTP), tidak boleh Secure.
+IS_VERCEL = bool(os.environ.get('VERCEL', ''))
+SESSION_COOKIE_SECURE = IS_VERCEL  # True di Vercel, False di lokal
+CSRF_COOKIE_SECURE = IS_VERCEL
+
+# Message storage juga harus pakai cookie (bukan session DB)
+MESSAGE_STORAGE = 'django.contrib.messages.storage.cookie.CookieStorage'
+
+# ============================================
+# CSRF & Security
+# ============================================
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+CSRF_TRUSTED_ORIGINS = [
+    'https://electroshopone.vercel.app',
+    'https://*.vercel.app',
+    'http://localhost:8000',
+    'http://127.0.0.1:8000',
+]
+
 if not DEBUG:
-    CSRF_COOKIE_SECURE = True
-    SESSION_COOKIE_SECURE = True
     SECURE_BROWSER_XSS_FILTER = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
-    SECURE_SSL_REDIRECT = True
     X_FRAME_OPTIONS = 'DENY'
-    SECURE_HSTS_SECONDS = 31536000
-    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
-    SECURE_HSTS_PRELOAD = True
+# JANGAN aktifkan SECURE_SSL_REDIRECT (Vercel sudah handle HTTPS sendiri)
+SECURE_SSL_REDIRECT = False
 
 # CORS Config
-CORS_ALLOW_ALL_ORIGINS = True # Change to specific origins in production
+CORS_ALLOW_ALL_ORIGINS = True
 
 # Login redirection
 LOGIN_URL = 'login'
 LOGIN_REDIRECT_URL = 'product_list'
 LOGOUT_REDIRECT_URL = 'product_list'
+
