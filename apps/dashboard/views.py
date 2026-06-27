@@ -1,5 +1,6 @@
 import csv
 import datetime
+import uuid
 from django.shortcuts import render, redirect, get_object_or_404
 from django.views import View
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView, TemplateView
@@ -117,8 +118,13 @@ class AdminProductCreateView(AdminRequiredMixin, CreateView):
     success_url = reverse_lazy('admin_product_list')
 
     def form_valid(self, form):
+        response = super().form_valid(form)
+        image = form.cleaned_data.get('product_image')
+        if image:
+            from products.models import ProductImage
+            ProductImage.objects.create(product=self.object, image=image, is_primary=True)
         messages.success(self.request, "Produk berhasil ditambahkan.")
-        return super().form_valid(form)
+        return response
 
 
 class AdminProductUpdateView(AdminRequiredMixin, UpdateView):
@@ -128,8 +134,18 @@ class AdminProductUpdateView(AdminRequiredMixin, UpdateView):
     success_url = reverse_lazy('admin_product_list')
 
     def form_valid(self, form):
+        response = super().form_valid(form)
+        image = form.cleaned_data.get('product_image')
+        if image:
+            from products.models import ProductImage
+            primary_img = self.object.images.filter(is_primary=True).first()
+            if primary_img:
+                primary_img.image = image
+                primary_img.save()
+            else:
+                ProductImage.objects.create(product=self.object, image=image, is_primary=True)
         messages.success(self.request, "Produk berhasil diperbarui.")
-        return super().form_valid(form)
+        return response
 
 
 class AdminProductDeleteView(AdminRequiredMixin, DeleteView):
@@ -297,7 +313,10 @@ class AdminOrderDetailView(AdminRequiredMixin, View):
             shipment, created = Shipment.objects.get_or_create(order=order)
             tracking_number = form.cleaned_data.get('tracking_number')
             ship_status = form.cleaned_data.get('shipment_status')
-            
+
+            if ship_status in [Shipment.Status.SHIPPED, Shipment.Status.DELIVERED] and not tracking_number:
+                tracking_number = f"TRK-{order.order_number.split('-')[-1]}-{uuid.uuid4().hex[:6].upper()}"
+
             shipment.tracking_number = tracking_number
             shipment.status = ship_status
             if ship_status == Shipment.Status.SHIPPED and not shipment.shipped_at:
@@ -383,6 +402,25 @@ class AdminUserUpdateView(AdminRequiredMixin, UpdateView):
     def form_valid(self, form):
         messages.success(self.request, "Status user diperbarui.")
         return super().form_valid(form)
+
+
+class AdminUserDeleteView(AdminRequiredMixin, View):
+    def post(self, request, pk):
+        user_to_delete = get_object_or_404(User, id=pk)
+        
+        if user_to_delete == request.user:
+            messages.error(request, "Anda tidak dapat menghapus akun Anda sendiri.")
+            return redirect('admin_user_list')
+            
+        if user_to_delete.role == User.Role.SUPER_ADMIN and request.user.role != User.Role.SUPER_ADMIN:
+            messages.error(request, "Anda tidak memiliki wewenang untuk menghapus akun Super Admin.")
+            return redirect('admin_user_list')
+            
+        email = user_to_delete.email
+        user_to_delete.delete()
+        messages.success(request, f"Akun pengguna {email} berhasil dihapus secara permanen.")
+        return redirect('admin_user_list')
+
 
 
 # ==========================================

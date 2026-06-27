@@ -7,6 +7,8 @@ from orders.models import Order, Shipment
 User = get_user_model()
 
 class ProductForm(forms.ModelForm):
+    product_image = forms.ImageField(required=False, widget=forms.FileInput(attrs={'class': 'form-control'}), label="Gambar Utama Produk")
+
     class Meta:
         model = Product
         fields = ['name', 'sku', 'description', 'price', 'discount_price', 'stock', 'weight_grams', 'category', 'brand', 'is_active', 'is_featured']

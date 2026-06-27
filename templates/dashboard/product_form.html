@@ -98,16 +98,26 @@
       </div>
 
       <div class="row mb-4">
-        <div class="col-md-6">
+        <div class="col-md-4">
           <div class="form-check">
             {{ form.is_active }}
             <label class="form-check-label fw-semibold" for="id_is_active">Aktifkan Penjualan (Is Active)</label>
           </div>
         </div>
-        <div class="col-md-6">
+        <div class="col-md-4">
           <div class="form-check">
             {{ form.is_featured }}
             <label class="form-check-label fw-semibold" for="id_is_featured">Tandai sebagai Produk Unggulan</label>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-semibold">Foto Produk</label>
+          {{ form.product_image }}
+          {% if form.product_image.errors %}
+            <div class="text-danger small mt-1">{{ form.product_image.errors.0 }}</div>
+          {% endif %}
+          <div class="form-text text-muted small">
+            Jika di Vercel, foto yang diupload lewat sini bersifat sementara. Gunakan GitHub untuk gambar permanen.
           </div>
         </div>
       </div>
