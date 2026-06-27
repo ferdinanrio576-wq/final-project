@@ -75,11 +75,13 @@ class Product(models.Model):
 
     # Static image mapping for products (used when no uploaded images exist)
     STATIC_IMAGE_MAP = {
+       
         'ROG-G14': '/static/images/asus-rog-g14.png',
         'S24-ULTRA': '/static/images/samsung-s24-ultra.png',
         'IPHONE-15P': '/static/images/iphone-15-pro-max.png',
-         'ASUS-TUF-FX507ZC4-I5-001': '/static/images/ASUS TUF.png',
-        'Lenovo Legion 5 ':'/static/images/Lenovo Legion 5 15IAH7.png',
+        'ASUS-TUF-FX507ZC4-I5-001': '/static/images/ASUS TUF.png',
+        'LENOVO-LEGION5-15IAH7-I5-001': '/static/images/NAMA_FILE_LENOVO_ANDA.png',
+    
     }
 
     @property
