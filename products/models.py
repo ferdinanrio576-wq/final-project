@@ -88,7 +88,7 @@ class Product(models.Model):
         first_img = self.images.first()
         if first_img:
             return first_img.image.url
-        # Fallback to static image based on SKU
+        # Fallback to static image based on SKU, then default
         return self.STATIC_IMAGE_MAP.get(self.sku, "/static/images/default-product.png")
 
     @property
