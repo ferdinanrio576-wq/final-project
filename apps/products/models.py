@@ -79,6 +79,7 @@ class Product(models.Model):
         'S24-ULTRA': '/static/images/samsung-s24-ultra.png',
         'IPHONE-15P': '/static/images/iphone-15-pro-max.png',
         'ASUS-TUF-FX507ZC4-I5-001': '/static/images/ASUS TUF.png',
+        'LENOVO-LEGION5-15IAH7-I5-001': '/static/images/lenovo-legion.png',
     }
 
     @property
