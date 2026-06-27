@@ -75,9 +75,9 @@ class Product(models.Model):
 
     # Static image mapping for products (used when no uploaded images exist)
     STATIC_IMAGE_MAP = {
-        'ROG-G14': 'https://picsum.photos/seed/asus-rog-g14/600/600',
-        'S24-ULTRA': 'https://picsum.photos/seed/samsung-s24/600/600',
-        'IPHONE-15P': 'https://picsum.photos/seed/iphone15/600/600',
+        'ROG-G14': '/static/images/asus-rog-g14.png',
+        'S24-ULTRA': '/static/images/samsung-s24-ultra.png',
+        'IPHONE-15P': '/static/images/iphone-15-pro-max.png',
     }
 
     @property
@@ -89,7 +89,7 @@ class Product(models.Model):
         if first_img:
             return first_img.image.url
         # Fallback to static image based on SKU, then default
-        return self.STATIC_IMAGE_MAP.get(self.sku, "https://picsum.photos/seed/product-default/600/600")
+        return self.STATIC_IMAGE_MAP.get(self.sku, "/static/images/default-product.png")
 
     @property
     def average_rating(self):
