@@ -66,7 +66,7 @@ class Order(models.Model):
     # Unique payment code fields
     unique_code = models.IntegerField(default=0)
     payment_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
-    payment_status = models.CharField(max_length=20, default='UNPAID')
+    payment_status = models.CharField(max_length=50, default='UNPAID')
     paid_at = models.DateTimeField(null=True, blank=True)
     
     # Store shipping address snapshot in case address is updated/deleted
